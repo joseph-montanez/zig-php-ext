@@ -1,0 +1,338 @@
+diff --git a/Zend/zend_API.h b/Zend/zend_API.h
+index 1114eeeec1..f78366deed 100644
+--- a/Zend/zend_API.h
++++ b/Zend/zend_API.h
+@@ -34,7 +34,7 @@ BEGIN_EXTERN_C()
+ 
+ typedef struct _zend_function_entry {
+ 	const char *fname;
+-	zif_handler handler;
++	void (ZEND_FASTCALL *handler)(INTERNAL_FUNCTION_PARAMETERS);
+ 	const struct _zend_internal_arg_info *arg_info;
+ 	uint32_t num_args;
+ 	uint32_t flags;
+diff --git a/Zend/zend_call_stack.h b/Zend/zend_call_stack.h
+index bdea17a476..5f3f0714c8 100644
+--- a/Zend/zend_call_stack.h
++++ b/Zend/zend_call_stack.h
+@@ -71,23 +71,21 @@ static inline void* zend_call_stack_limit(void *base, size_t size, size_t reserv
+ static inline size_t zend_call_stack_default_size(void)
+ {
+ #ifdef __linux__
+-	return 8 * 1024 * 1024;
+-#endif
+-#if defined(__FreeBSD__) || defined(__NetBSD__)
+-	return 4 * 1024 * 1024;
+-#endif
+-#ifdef __OpenBSD__
+-	return 512 * 1024;
+-#endif
+-#ifdef __APPLE__
+-	// https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/CreatingThreads/CreatingThreads.html
+-	if (pthread_main_np()) {
+-		return 8 * 1024 * 1024;
+-	}
+-	return 512 * 1024;
++    return 8 * 1024 * 1024;
++#elif defined(__FreeBSD__) || defined(__NetBSD__)
++    return 4 * 1024 * 1024;
++#elif defined(__OpenBSD__)
++    return 512 * 1024;
++#elif defined(__APPLE__)
++    // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Multithreading/CreatingThreads/CreatingThreads.html
++    if (pthread_main_np()) {
++        return 8 * 1024 * 1024;
++    }
++    return 512 * 1024;
++#else
++    // Default case for all other platforms
++    return 2 * 1024 * 1024;
+ #endif
+-
+-	return 2 * 1024 * 1024;
+ }
+ 
+ #endif /* ZEND_CHECK_STACK_LIMIT */
+diff --git a/Zend/zend_closures.c b/Zend/zend_closures.c
+index f1b29af796..4ef440ddb6 100644
+--- a/Zend/zend_closures.c
++++ b/Zend/zend_closures.c
+@@ -33,7 +33,7 @@ typedef struct _zend_closure {
+ 	zend_function     func;
+ 	zval              this_ptr;
+ 	zend_class_entry *called_scope;
+-	zif_handler       orig_internal_handler;
++	void (ZEND_FASTCALL *orig_internal_handler)(INTERNAL_FUNCTION_PARAMETERS);
+ } zend_closure;
+ 
+ /* non-static since it needs to be referenced */
+diff --git a/Zend/zend_compile.h b/Zend/zend_compile.h
+index 724b5b8c8a..9b2df915b4 100644
+--- a/Zend/zend_compile.h
++++ b/Zend/zend_compile.h
+@@ -493,7 +493,7 @@ struct _zend_op_array {
+ #define ZEND_RETURN_REFERENCE			1
+ 
+ /* zend_internal_function_handler */
+-typedef void (ZEND_FASTCALL *zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
++// typedef void (ZEND_FASTCALL *zif_handler)(INTERNAL_FUNCTION_PARAMETERS);
+ 
+ typedef struct _zend_internal_function {
+ 	/* Common elements */
+@@ -511,7 +511,7 @@ typedef struct _zend_internal_function {
+ 	uint32_t T;         /* number of temporary variables */
+ 	/* END of common elements */
+ 
+-	zif_handler handler;
++	void (ZEND_FASTCALL *handler)(zend_execute_data *execute_data, zval *return_value);
+ 	struct _zend_module_entry *module;
+ 	void *reserved[ZEND_MAX_RESERVED_RESOURCES];
+ } zend_internal_function;
+diff --git a/ext/opcache/ZendAccelerator.c b/ext/opcache/ZendAccelerator.c
+index a21c640d91..79ac3f0ce3 100644
+--- a/ext/opcache/ZendAccelerator.c
++++ b/ext/opcache/ZendAccelerator.c
+@@ -124,7 +124,7 @@ static zend_class_entry* (*accelerator_orig_inheritance_cache_get)(zend_class_en
+ static zend_class_entry* (*accelerator_orig_inheritance_cache_add)(zend_class_entry *ce, zend_class_entry *proto, zend_class_entry *parent, zend_class_entry **traits_and_interfaces, HashTable *dependencies);
+ static zend_result (*accelerator_orig_zend_stream_open_function)(zend_file_handle *handle );
+ static zend_string *(*accelerator_orig_zend_resolve_path)(zend_string *filename);
+-static zif_handler orig_chdir = NULL;
++static void (ZEND_FASTCALL *orig_chdir)(zend_execute_data *execute_data, zval *return_value) = NULL;
+ static ZEND_INI_MH((*orig_include_path_on_modify)) = NULL;
+ static zend_result (*orig_post_startup_cb)(void);
+ 
+diff --git a/ext/opcache/jit/zend_jit_arm64.dasc b/ext/opcache/jit/zend_jit_arm64.dasc
+index 90f6109cad..e28e52bfb6 100644
+--- a/ext/opcache/jit/zend_jit_arm64.dasc
++++ b/ext/opcache/jit/zend_jit_arm64.dasc
+@@ -8415,11 +8415,11 @@ static int zend_jit_assign(dasm_State **Dst, const zend_op *opline, uint32_t op1
+ 
+ /* copy of hidden zend_closure */
+ typedef struct _zend_closure {
+-	zend_object       std;
+-	zend_function     func;
+-	zval              this_ptr;
+-	zend_class_entry *called_scope;
+-	zif_handler       orig_internal_handler;
++    zend_object       std;
++    zend_function     func;
++    zval              this_ptr;
++    zend_class_entry *called_scope;
++    void (ZEND_FASTCALL *orig_internal_handler)(zend_execute_data *execute_data, zval *return_value);
+ } zend_closure;
+ 
+ static int zend_jit_stack_check(dasm_State **Dst, const zend_op *opline, uint32_t used_stack)
+diff --git a/ext/opcache/zend_accelerator_module.c b/ext/opcache/zend_accelerator_module.c
+index 5c69c9f788..553bb3286c 100644
+--- a/ext/opcache/zend_accelerator_module.c
++++ b/ext/opcache/zend_accelerator_module.c
+@@ -44,9 +44,9 @@
+ #define MAX_INTERNED_STRINGS_BUFFER_SIZE ((zend_long)((UINT32_MAX-PLATFORM_ALIGNMENT-sizeof(zend_accel_shared_globals))/(1024*1024)))
+ #define TOKENTOSTR(X) #X
+ 
+-static zif_handler orig_file_exists = NULL;
+-static zif_handler orig_is_file = NULL;
+-static zif_handler orig_is_readable = NULL;
++static void (ZEND_FASTCALL *orig_file_exists)(zend_execute_data *execute_data, zval *return_value) = NULL;
++static void (ZEND_FASTCALL *orig_is_file)(zend_execute_data *execute_data, zval *return_value) = NULL;
++static void (ZEND_FASTCALL *orig_is_readable)(zend_execute_data *execute_data, zval *return_value) = NULL;
+ 
+ static int validate_api_restriction(void)
+ {
+diff --git a/ext/phar/func_interceptors.c b/ext/phar/func_interceptors.c
+index c52ee805b2..2f8dd7fa41 100644
+--- a/ext/phar/func_interceptors.c
++++ b/ext/phar/func_interceptors.c
+@@ -479,7 +479,7 @@ static void phar_fancy_stat(zend_stat_t *stat_sb, int type, zval *return_value)
+ }
+ /* }}} */
+ 
+-static void phar_file_stat(const char *filename, size_t filename_length, int type, zif_handler orig_stat_func, INTERNAL_FUNCTION_PARAMETERS) /* {{{ */
++static void phar_file_stat(const char *filename, size_t filename_length, int type, void (ZEND_FASTCALL *orig_stat_func)(zend_execute_data *execute_data, zval *return_value), INTERNAL_FUNCTION_PARAMETERS) /* {{{ */
+ {
+ 	if (!filename_length) {
+ 		RETURN_FALSE;
+@@ -955,31 +955,35 @@ void phar_intercept_functions_shutdown(void)
+ }
+ /* }}} */
+ 
++
++
++
+ static struct _phar_orig_functions {
+-	zif_handler orig_fopen;
+-	zif_handler orig_file_get_contents;
+-	zif_handler orig_is_file;
+-	zif_handler orig_is_link;
+-	zif_handler orig_is_dir;
+-	zif_handler orig_opendir;
+-	zif_handler orig_file_exists;
+-	zif_handler orig_fileperms;
+-	zif_handler orig_fileinode;
+-	zif_handler orig_filesize;
+-	zif_handler orig_fileowner;
+-	zif_handler orig_filegroup;
+-	zif_handler orig_fileatime;
+-	zif_handler orig_filemtime;
+-	zif_handler orig_filectime;
+-	zif_handler orig_filetype;
+-	zif_handler orig_is_writable;
+-	zif_handler orig_is_readable;
+-	zif_handler orig_is_executable;
+-	zif_handler orig_lstat;
+-	zif_handler orig_readfile;
+-	zif_handler orig_stat;
++    void (ZEND_FASTCALL *orig_fopen)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_file_get_contents)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_file)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_link)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_dir)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_opendir)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_file_exists)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileperms)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileinode)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filesize)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileowner)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filegroup)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileatime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filemtime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filectime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filetype)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_writable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_readable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_executable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_lstat)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_readfile)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_stat)(zend_execute_data *execute_data, zval *return_value);
+ } phar_orig_functions = {0};
+ 
++
+ void phar_save_orig_functions(void) /* {{{ */
+ {
+ 	phar_orig_functions.orig_fopen             = PHAR_G(orig_fopen);
+diff --git a/ext/phar/phar_internal.h b/ext/phar/phar_internal.h
+index 9f8a46b65e..d992be0ac9 100644
+--- a/ext/phar/phar_internal.h
++++ b/ext/phar/phar_internal.h
+@@ -129,64 +129,65 @@ typedef struct _phar_entry_fp phar_entry_fp;
+ typedef struct _phar_archive_data phar_archive_data;
+ 
+ ZEND_BEGIN_MODULE_GLOBALS(phar)
+-	/* a list of phar_archive_data objects that reference a cached phar, so
+-	   that if copy-on-write is performed, we can swap them out for the new value */
+-	HashTable   phar_persist_map;
+-	HashTable   phar_fname_map;
+-	/* for cached phars, this is a per-process store of fp/ufp */
+-	phar_entry_fp *cached_fp;
+-	HashTable   phar_alias_map;
+-	int         phar_SERVER_mung_list;
+-	int         readonly;
+-	char*       cache_list;
+-	int         manifest_cached;
+-	int         persist;
+-	int         has_zlib;
+-	int         has_bz2;
+-	bool   readonly_orig;
+-	bool   require_hash_orig;
+-	bool   intercepted;
+-	int         request_init;
+-	int         require_hash;
+-	int         request_done;
+-	int         request_ends;
+-	zif_handler orig_fopen;
+-	zif_handler orig_file_get_contents;
+-	zif_handler orig_is_file;
+-	zif_handler orig_is_link;
+-	zif_handler orig_is_dir;
+-	zif_handler orig_opendir;
+-	zif_handler orig_file_exists;
+-	zif_handler orig_fileperms;
+-	zif_handler orig_fileinode;
+-	zif_handler orig_filesize;
+-	zif_handler orig_fileowner;
+-	zif_handler orig_filegroup;
+-	zif_handler orig_fileatime;
+-	zif_handler orig_filemtime;
+-	zif_handler orig_filectime;
+-	zif_handler orig_filetype;
+-	zif_handler orig_is_writable;
+-	zif_handler orig_is_readable;
+-	zif_handler orig_is_executable;
+-	zif_handler orig_lstat;
+-	zif_handler orig_readfile;
+-	zif_handler orig_stat;
+-	/* used for includes with . in them inside front controller */
+-	char*       cwd;
+-	uint32_t    cwd_len;
+-	int         cwd_init;
+-	char        *openssl_privatekey;
+-	uint32_t    openssl_privatekey_len;
+-	/* phar_get_archive cache */
+-	char*       last_phar_name;
+-	uint32_t    last_phar_name_len;
+-	char*       last_alias;
+-	uint32_t    last_alias_len;
+-	phar_archive_data* last_phar;
+-	HashTable mime_types;
++    /* a list of phar_archive_data objects that reference a cached phar, so
++       that if copy-on-write is performed, we can swap them out for the new value */
++    HashTable   phar_persist_map;
++    HashTable   phar_fname_map;
++    /* for cached phars, this is a per-process store of fp/ufp */
++    phar_entry_fp *cached_fp;
++    HashTable   phar_alias_map;
++    int         phar_SERVER_mung_list;
++    int         readonly;
++    char*       cache_list;
++    int         manifest_cached;
++    int         persist;
++    int         has_zlib;
++    int         has_bz2;
++    bool        readonly_orig;
++    bool        require_hash_orig;
++    bool        intercepted;
++    int         request_init;
++    int         require_hash;
++    int         request_done;
++    int         request_ends;
++    void (ZEND_FASTCALL *orig_fopen)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_file_get_contents)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_file)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_link)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_dir)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_opendir)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_file_exists)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileperms)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileinode)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filesize)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileowner)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filegroup)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_fileatime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filemtime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filectime)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_filetype)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_writable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_readable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_is_executable)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_lstat)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_readfile)(zend_execute_data *execute_data, zval *return_value);
++    void (ZEND_FASTCALL *orig_stat)(zend_execute_data *execute_data, zval *return_value);
++    /* used for includes with . in them inside front controller */
++    char*       cwd;
++    uint32_t    cwd_len;
++    int         cwd_init;
++    char*       openssl_privatekey;
++    uint32_t    openssl_privatekey_len;
++    /* phar_get_archive cache */
++    char*       last_phar_name;
++    uint32_t    last_phar_name_len;
++    char*       last_alias;
++    uint32_t    last_alias_len;
++    phar_archive_data* last_phar;
++    HashTable mime_types;
+ ZEND_END_MODULE_GLOBALS(phar)
+ 
++
+ ZEND_EXTERN_MODULE_GLOBALS(phar)
+ #define PHAR_G(v) ZEND_MODULE_GLOBALS_ACCESSOR(phar, v)
+ 

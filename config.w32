@@ -1,0 +1,7 @@
+ARG_ENABLE('ext', 'ext support', 'no');
+
+if (PHP_EXT != 'no') {
+	AC_DEFINE('HAVE_EXT', 1, 'ext support enabled');
+
+	EXTENSION('ext', 'ext.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}
