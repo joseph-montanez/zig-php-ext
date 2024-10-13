@@ -19,3 +19,7 @@ Makefile.objects
 modules/
 libext.*
 ext.stub.php
+.zig-cache/
+wrapper.o
+config.h.in~
+wrapper.o

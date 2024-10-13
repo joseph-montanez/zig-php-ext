@@ -8,6 +8,7 @@ BUILD_DIR="build/php-src"
 INSTALL_ZTS_DIR="php-8.3-zts-debug"
 INSTALL_NON_ZTS_DIR="php-8.3-non-zts-debug"
 MACOS_SDK_PATH=$(xcrun --sdk macosx --show-sdk-path)
+PATCH_FILE="../../php-zig.patch"
 
 # Create the build directories
 mkdir -p "build"
@@ -29,6 +30,12 @@ else
   popd
 fi
 
+# Apply the patch if it exists
+echo "Applying patch $PATCH_FILE..."
+pushd "$BUILD_DIR"
+git apply "$PATCH_FILE"
+popd
+
 # Check if bison is installed, and install it if necessary
 if ! command -v bison &>/dev/null; then
   echo "Bison not found. Installing bison using Homebrew..."
@@ -46,7 +53,7 @@ BISON_PATH=$(brew --prefix bison)/bin
 # Verify that we have the correct version of bison
 BISON_VERSION=$($BISON_PATH/bison --version | head -n 1 | awk '{print $4}')
 REQUIRED_VERSION="3.0.0"
-if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$BISON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION"; then
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$BISON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
   echo "Bison version $BISON_VERSION is too old. Please update to at least version $REQUIRED_VERSION."
   exit 1
 fi
@@ -57,7 +64,6 @@ echo "Bison version $BISON_VERSION found."
 export BISON="$BISON_PATH/bison"
 export YACC="$BISON_PATH/bison"
 
-# Function to configure, build, and install PHP
 build_php() {
   local install_dir=$1
   local zts_flag=$2
@@ -65,18 +71,21 @@ build_php() {
   # Enter the PHP source directory
   pushd "$BUILD_DIR"
 
-  # Clean previous builds
-  echo "Cleaning previous builds..."
-  make clean || true
+  # Run ./buildconf to ensure ./configure exists
+  if [ ! -f "./configure" ]; then
+    echo "Running ./buildconf to generate configure script..."
+    ./buildconf --force
+  fi
 
   # Configure PHP
   echo "Configuring PHP (ZTS: $zts_flag) with embedding..."
   PATH="$BISON_PATH:$PATH" ./configure --host=arm-apple-darwin \
+    --prefix="$(pwd)/../$install_dir/" \
     --with-iconv="$MACOS_SDK_PATH/usr" \
     --with-sqlite3="$MACOS_SDK_PATH/usr" \
     --enable-debug \
     --enable-shared --with-libdir=lib --enable-static=no \
-    --enable-embed=shared \
+    --enable-embed=static \
     --disable-phar \
     --without-libxml \
     --disable-dom \
@@ -86,6 +95,10 @@ build_php() {
     --disable-xmlwriter \
     --disable-cgi \
     $zts_flag
+
+  # Clean previous builds
+  echo "Cleaning previous builds..."
+  make clean || true
 
   # Build PHP
   echo "Building PHP (ZTS: $zts_flag)..."

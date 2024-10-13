@@ -11,6 +11,7 @@ const php = @cImport({
     @cDefine("ZEND_DEBUG", "1");
     @cDefine("ZTS", "1");
     @cInclude("php_config.h");
+    @cInclude("zend_API.h");
     @cInclude("php.h");
     @cInclude("ext/standard/info.h");
     @cInclude("wrapper.h");
@@ -269,7 +270,7 @@ fn zif_test1(execute_data: [*c]php.zend_execute_data, _: [*c]php.zval) callconv(
         php.zend_wrong_parameters_none_error();
         return;
     }
-    std.debug.print("The extension {s} is loaded and working!\r\n", .{"raylib"});
+    std.debug.print("The extension {s} is loaded and working!\r\n", .{"EXT"});
 }
 
 var arginfo_test2: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(false, 0, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };

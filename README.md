@@ -21,4 +21,10 @@ This will use brew to install `Bison 3.x`, however you do need the **XCode toolc
 
 # 2. Building Zig Extension
 
-./build.sh
+PHP has several modes, right now `zig build` only uses ZTS/NON-ZTS for thread-safety. If you need a thread-safety version you can use:
+
+    ./build.sh --zig /path/to/zig --zts
+
+If not, and okay with non-thread safety version:
+
+    ./build.sh --zig /path/to/zig
