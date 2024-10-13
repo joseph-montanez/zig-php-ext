@@ -5,15 +5,20 @@ set -eu
 # Variables
 PHP_VERSION="php-8.3.12"
 BUILD_DIR="build/php-src"
-INSTALL_ZTS_DIR="php-8.3-zts-debug"
-INSTALL_NON_ZTS_DIR="php-8.3-non-zts-debug"
+INSTALL_DIR_PREFIX="php-8.3"
 MACOS_SDK_PATH=$(xcrun --sdk macosx --show-sdk-path)
 PATCH_FILE="../../php-zig.patch"
+BUILD_TYPES=("debug" "release")
+ZTS_TYPES=("zts" "non-zts")
 
 # Create the build directories
 mkdir -p "build"
-mkdir -p "build/$INSTALL_ZTS_DIR/"
-mkdir -p "build/$INSTALL_NON_ZTS_DIR/"
+
+for build_type in "${BUILD_TYPES[@]}"; do
+  for zts_type in "${ZTS_TYPES[@]}"; do
+    mkdir -p "build/${INSTALL_DIR_PREFIX}-${zts_type}-${build_type}/"
+  done
+done
 
 # Clone PHP if not already cloned, or reset if exists
 if [ ! -d "$BUILD_DIR" ]; then
@@ -67,6 +72,13 @@ export YACC="$BISON_PATH/bison"
 build_php() {
   local install_dir=$1
   local zts_flag=$2
+  local build_type=$3
+  local enable_debug="--enable-debug"
+
+  # Set release options
+  if [[ "$build_type" == "release" ]]; then
+    enable_debug="--disable-debug --enable-opcache"
+  fi
 
   # Enter the PHP source directory
   pushd "$BUILD_DIR"
@@ -78,13 +90,14 @@ build_php() {
   fi
 
   # Configure PHP
-  echo "Configuring PHP (ZTS: $zts_flag) with embedding..."
+  echo "Configuring PHP (ZTS: $zts_flag, Build Type: $build_type) with embedding..."
   PATH="$BISON_PATH:$PATH" ./configure --host=arm-apple-darwin \
     --prefix="$(pwd)/../$install_dir/" \
     --with-iconv="$MACOS_SDK_PATH/usr" \
     --with-sqlite3="$MACOS_SDK_PATH/usr" \
-    --enable-debug \
-    --enable-shared --with-libdir=lib --enable-static=no \
+    --enable-shared \
+    --with-libdir=lib \
+    --enable-static=no \
     --enable-embed=static \
     --disable-phar \
     --without-libxml \
@@ -94,14 +107,15 @@ build_php() {
     --disable-xmlreader \
     --disable-xmlwriter \
     --disable-cgi \
-    $zts_flag
+    $zts_flag \
+    $enable_debug
 
   # Clean previous builds
   echo "Cleaning previous builds..."
   make clean || true
 
   # Build PHP
-  echo "Building PHP (ZTS: $zts_flag)..."
+  echo "Building PHP (ZTS: $zts_flag, Build Type: $build_type)..."
   make BISON="$BISON_PATH/bison" YACC="$BISON_PATH/bison" -j$(sysctl -n hw.ncpu)
 
   # Install PHP
@@ -111,10 +125,16 @@ build_php() {
   popd
 }
 
-# Build ZTS version
-build_php "$INSTALL_ZTS_DIR" "--enable-zts"
+# Loop over ZTS/Non-ZTS and Debug/Release build types
+for build_type in "${BUILD_TYPES[@]}"; do
+  for zts_type in "${ZTS_TYPES[@]}"; do
+    install_dir="${INSTALL_DIR_PREFIX}-${zts_type}-${build_type}"
+    zts_flag="--disable-zts"
+    if [[ "$zts_type" == "zts" ]]; then
+      zts_flag="--enable-zts"
+    fi
+    build_php "$install_dir" "$zts_flag" "$build_type"
+  done
+done
 
-# Build Non-ZTS version
-build_php "$INSTALL_NON_ZTS_DIR" "--disable-zts"
-
-echo "PHP $PHP_VERSION built successfully with ZTS and Non-ZTS versions."
+echo "PHP $PHP_VERSION built successfully with ZTS and Non-ZTS, Debug and Release versions."

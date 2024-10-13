@@ -114,17 +114,17 @@ pub fn Z_PARAM_PROLOGUE(
         state._arg = null;
     }
 
-    if (deref and php.Z_ISREF_P(state._arg)) {
-        state._arg = php.Z_REFVAL_P(state._arg);
+    if (deref and php.Z_ISREF_P(state._arg.?)) {
+        state._arg = php.Z_REFVAL_P(state._arg.?);
     }
 
     if (separate) {
-        php.SEPARATE_ZVAL_NOREF(state._arg);
+        types.SEPARATE_ZVAL_NOREF(state._arg.?);
     }
 }
 
 pub fn ZEND_PARSE_PARAMETERS_END(state: *ParseState) !void {
-    std.debug.assert(state._i == state._max_num_args or state._max_num_args == @as(u32, -1));
+    std.debug.assert(state._i == state._max_num_args or state._max_num_args == std.math.maxInt(u32));
 
     if (state._error_code != php.ZPP_ERROR_OK) {
         if (!(state._flags & php.ZEND_PARSE_PARAMS_QUIET != 0)) {
@@ -143,8 +143,8 @@ pub fn ZEND_PARSE_PARAMETERS_START_EX(
     return ParseState.init(flags, min_num_args, max_num_args, execute_data);
 }
 
-pub fn ZEND_PARSE_PARAMETERS_START(min_num_args: u32, max_num_args: u32) ParseState {
-    return ZEND_PARSE_PARAMETERS_START_EX(0, min_num_args, max_num_args);
+pub fn ZEND_PARSE_PARAMETERS_START(min_num_args: u32, max_num_args: u32, execute_data: ?*php.zend_execute_data) ParseState {
+    return ZEND_PARSE_PARAMETERS_START_EX(0, min_num_args, max_num_args, execute_data);
 }
 
 pub fn RETURN_STR(s: *php.zend_string, return_value: *php.zval) void {

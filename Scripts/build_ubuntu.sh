@@ -5,8 +5,9 @@ set -eu
 # Variables
 PHP_VERSION="php-8.3.12"
 BUILD_DIR="build/php-src"
-INSTALL_ZTS_DIR="$PHP_VERSION-zts-debug"
-INSTALL_NON_ZTS_DIR="$PHP_VERSION-non-zts-debug"
+INSTALL_DIR_PREFIX="php-8.3"
+INSTALL_ZTS_DIR="$INSTALL_DIR_PREFIX-zts-debug"
+INSTALL_NON_ZTS_DIR="$INSTALL_DIR_PREFIX-non-zts-debug"
 PATCH_FILE="../../php-zig.patch"
 
 # Create the build directories

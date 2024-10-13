@@ -24,11 +24,12 @@ pub fn ZEND_CALL_VAR(call: *php.zend_execute_data, n: c_int) *php.zval {
     return @ptrFromInt(@intFromPtr(call) + n_cast * @sizeOf(php.zval));
 }
 
-pub fn ZEND_CALL_VAR_NUM(call: *php.zend_execute_data, n: c_int) *php.zval {
-    const n_cast: usize = @intCast(n);
-    return @ptrFromInt(@intFromPtr(call) + ZEND_CALL_FRAME_SLOT() * @sizeOf(php.zval) + n_cast * @sizeOf(php.zval));
+pub fn ZEND_CALL_VAR_NUM(call: *php.zend_execute_data, n: isize) *php.zval {
+    const zval_ptr: [*]php.zval = @ptrCast(@alignCast(call));
+    const offset: isize = @as(isize, @intCast(ZEND_CALL_FRAME_SLOT())) + n;
+    return &zval_ptr[@intCast(@as(usize, @max(0, offset)))];
 }
 
-pub fn ZEND_CALL_ARG(call: *php.zend_execute_data, n: c_int) *php.zval {
+pub fn ZEND_CALL_ARG(call: *php.zend_execute_data, n: isize) *php.zval {
     return ZEND_CALL_VAR_NUM(call, n - 1);
 }

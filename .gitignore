@@ -24,3 +24,5 @@ wrapper.o
 config.h.in~
 wrapper.o
 .DS_Store
+out.c
+out.zig

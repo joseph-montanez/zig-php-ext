@@ -61,94 +61,21 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
     var var_len: usize = 5;
     var retval: ?*php.zend_string = null;
 
-    const _flags: c_int = 0;
-    const _min_num_args: u32 = 0;
-    const _max_num_args: u32 = 1;
-    const _num_args: u32 = execute_data.*.This.u2.num_args;
-    var _i: u32 = 0;
-    var _real_arg: ?*php.zval = null;
-    var _arg: ?*php.zval = null;
-    var _expected_type: php.zend_expected_type = php.Z_EXPECTED_LONG;
-    const _error: ?[*]u8 = null;
-    // var _dummy: bool = false;
-    var _optional: bool = false;
-    var _error_code: c_int = 0;
-
-    if (_num_args < _min_num_args or _num_args > _max_num_args) {
-        if ((_flags & (1 << 1)) != 0) {
-            php.zend_wrong_parameters_count_error(_min_num_args, _max_num_args);
-        }
-        _error_code = 1;
+    var paramState = zend.ZEND_PARSE_PARAMETERS_START(0, 1, execute_data);
+    zend.Z_PARAM_OPTIONAL(&paramState);
+    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch |err| {
+        std.debug.print("`str` parameter error: {}\n", .{err});
         return;
-    }
-
-    const zval_ptr_from_execute_data: *php.zval = @ptrCast(execute_data); // ((zval *)(execute_data))
-    const execute_data_size: usize = @sizeOf(php.zend_execute_data); // sizeof(zend_execute_data)
-    const zval_size = @sizeOf(php.zval);
-    const offset: usize = (execute_data_size + zval_size - 1) / zval_size; // sizeof(zend_execute_data) + sizeof(zval) - 1
-    const tmp_offset: isize = @intCast(offset); // cast to int like ((int)(sizeof(zend_execute_data) + sizeof(zval) - 1))
-    const adjusted_offset: usize = tmp_offset + 0 - 1; // ((int)(((int)(0)) - 1))
-    const tmp_zval_ptr_from_execute_data: usize = @intFromPtr(zval_ptr_from_execute_data);
-    _real_arg = @ptrFromInt(tmp_zval_ptr_from_execute_data + adjusted_offset * zval_size);
-
-    // Optional flag and index increment (as per the original code)
-    _optional = true;
-    _i += 1;
-
-    std.debug.assert(_i <= _min_num_args or _optional == true);
-    std.debug.assert(_i > _min_num_args or _optional == false);
-
-    if (_optional) {
-        if (_i > _num_args) return;
-    }
-
-    if (_real_arg) |real_arg| {
-        const real_arg_as_int: usize = @intFromPtr(real_arg);
-        const next_real_arg_as_int: usize = real_arg_as_int + @sizeOf(php.zval);
-        _real_arg = @ptrFromInt(next_real_arg_as_int);
-    }
-    _arg = _real_arg;
-
-    if (false) {
-        if (php.zval_get_type(_arg) == 10) {
-            _arg = &_arg.value.ref.val;
-        }
-    }
-
-    if (false) {
-        var _zv: *php.zval = _arg;
-        std.debug.assert(php.zval_get_type(_zv) != 10);
-
-        if (php.zval_get_type(_zv) == 7) {
-            var _arr: *php.zend_array = _zv.value.arr;
-            if (php.zend_gc_refcount(&_arr.gc) > 1) {
-                const __arr: *php.zend_array = php.zend_array_dup(_arr);
-                _zv.value.arr = __arr;
-                _zv.u1.type_info = 7 | ((1 << 0) << 8) | ((1 << 1) << 8);
-                php.zend_gc_try_delref(&_arr.gc);
-            }
-        }
-    }
-
-    if (!php.zend_parse_arg_string(_arg, &var_str, &var_len, false, _i)) {
-        _expected_type = if (false) php.Z_EXPECTED_STRING_OR_NULL else php.Z_EXPECTED_STRING;
-        _error_code = php.ZPP_ERROR_WRONG_ARG;
+    };
+    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch |err| {
+        std.debug.print("end parameter error: {}\n", .{err});
         return;
-    }
-
-    std.debug.assert(_i == _max_num_args or _max_num_args == std.math.maxInt(u32));
-
-    if (_error_code != 0) {
-        if ((_flags & (1 << 1)) != 0) {
-            php.zend_wrong_parameter_error(_error_code, _i, _error, _expected_type, _arg);
-        }
-        return;
-    }
+    };
 
     // Format the string in Zig
     const var_str_slice: []const u8 = @as([*]const u8, var_str)[0..var_len];
     const formatted_str = format_string(var_str_slice) catch {
-        std.debug.print("NO! GOD NO!\n", .{});
+        std.debug.print("Well... this looks bad!!\n", .{});
         return;
     };
 
@@ -158,7 +85,7 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
         // std.debug.print("NO! GOD NO?\n", .{});
         zend.RETURN_STR(nonOptionalRetval, @constCast(return_value));
     } else {
-        std.debug.print("NO! GOD NO NO!\n", .{});
+        std.debug.print("How did we get here?!\n", .{});
         // Handle the case where retval is null
         return;
     }
