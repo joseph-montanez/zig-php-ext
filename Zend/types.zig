@@ -43,3 +43,15 @@ pub fn ZEND_TYPE_INIT_CODE(code: u32, allow_null: bool, extra_flags: u32) php.ze
 
     return ZEND_TYPE_INIT_MASK(mask | extra_flags);
 }
+
+pub fn GC_TYPE_INFO(p: *php.zend_string) u32 {
+    return p.gc.u.type_info;
+}
+
+pub fn GC_TYPE(p: *php.zend_string) u32 {
+    return php.zval_gc_type(GC_TYPE_INFO(p));
+}
+
+pub fn GC_FLAGS(p: *php.zend_string) u32 {
+    return php.zval_gc_flags(GC_TYPE_INFO(p));
+}

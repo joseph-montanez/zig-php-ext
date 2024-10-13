@@ -270,7 +270,7 @@ fn zif_test1(execute_data: [*c]php.zend_execute_data, _: [*c]php.zval) callconv(
         php.zend_wrong_parameters_none_error();
         return;
     }
-    std.debug.print("The extension {s} is loaded and working!\r\n", .{"EXT"});
+    std.debug.print("test1() - The extension {s} is loaded and working!\r\n", .{"EXT"});
 }
 
 var arginfo_test2: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(false, 0, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
@@ -278,7 +278,7 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
     var buffer: [6]u8 = [_]u8{ 'W', 'o', 'r', 'l', 'd', 0 };
     var var_str: [*c]u8 = &buffer[0];
     var var_len: usize = 5;
-    var retval = @as([*c]php.struct__zend_string, @ptrCast(php.zend_string_init_wrapper(&buffer[0], var_len, 0)));
+    var retval: ?*php.zend_string = null;
 
     const _flags: c_int = 0;
     const _min_num_args: u32 = 0;
@@ -371,7 +371,7 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
         return;
     };
 
-    retval = @as([*c]php.struct__zend_string, @ptrCast(php.zend_string_init_wrapper(formatted_str.ptr, formatted_str.len, 0)));
+    retval = php.zend_string_init_wrapper(formatted_str.ptr, formatted_str.len, 0);
 
     if (retval) |nonOptionalRetval| {
         // std.debug.print("NO! GOD NO?\n", .{});

@@ -18,9 +18,10 @@ done
 
 # Clear previous build artifacts
 clear
-# rm -rf .zig-cache
-# rm -rf ~/.cache/zig
+#rm -rf .zig-cache
+#rm -rf ~/.cache/zig
 rm -f libext.*
+rm -f libext.*.*
 rm -f wrapper.o
 
 # Determine the shared library extension based on the OS
@@ -50,6 +51,7 @@ clang -c wrapper.c -o wrapper.o $INCLUDE_PATHS $SDK_INCLUDE -fPIC
 # Build Zig library
 $ZIG_BINARY build-lib ext.zig \
     -freference-trace \
+    -fallow-shlib-undefined \
     -Dtarget=native \
     -dynamic \
     $INCLUDE_PATHS \
@@ -58,12 +60,8 @@ $ZIG_BINARY build-lib ext.zig \
     -fno-omit-frame-pointer \
     -fPIC \
     -L$PHP_SDK../lib \
-    -lphp \
     $LIBS \
     -I. \
-    --verbose-cimport \
-    --verbose-cc \
-    --verbose-link \
     wrapper.o
 
 # Test the extension
