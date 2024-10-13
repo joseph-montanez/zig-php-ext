@@ -18,8 +18,8 @@ done
 
 # Clear previous build artifacts
 clear
-#rm -rf .zig-cache
-#rm -rf ~/.cache/zig
+# rm -rf .zig-cache
+# rm -rf ~/.cache/zig
 rm -f libext.*
 rm -f libext.*.*
 rm -f wrapper.o

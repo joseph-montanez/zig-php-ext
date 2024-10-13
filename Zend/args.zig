@@ -12,6 +12,9 @@ const php = @cImport({
 const types = @import("types.zig");
 usingnamespace types;
 
+const compile = @import("compile.zig");
+usingnamespace compile;
+
 pub fn ZEND_ARG_INFO_FLAGS(pass_by_ref: bool, is_variadic: bool, is_tentative: bool) u32 {
     var flags: u32 = 0;
 
