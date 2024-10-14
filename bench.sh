@@ -24,3 +24,4 @@ LIBS=$(${PHP_SDK}php-config --libs)
 echo "Benchmarking the PHP extension..."
 ${PHP_SDK}php -d extension=./libext.${LIB_EXTENSION} bench-zig.php
 ${PHP_SDK}php -d extension=./ext2/.libs/ext2.so bench-c.php
+${PHP_SDK}php bench-internal.php

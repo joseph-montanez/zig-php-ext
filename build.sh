@@ -14,7 +14,7 @@ while [[ "$#" -gt 0 ]]; do
         --zts) PHP_ZTS_TYPE="zts" ;;
         --release)
             PHP_BUILD_TYPE="release"
-            ZIG_OPT="ReleaseFast"  # Change Zig optimization to release mode
+            ZIG_OPT="ReleaseSafe"  # Change Zig optimization to release mode
             ;;
         --action) ACTIONS+=("$2"); shift ;;  # Collect actions into an array
         *) echo "Unknown parameter: $1"; exit 1 ;;

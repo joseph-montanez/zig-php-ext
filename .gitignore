@@ -26,3 +26,6 @@ wrapper.o
 .DS_Store
 out.c
 out.zig
+ext2/ext2.dep
+ext2/ext2.stub.php
+wrapper.o

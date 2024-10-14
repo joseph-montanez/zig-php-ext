@@ -10,7 +10,7 @@ export PATH="${PHP_PATH}/bin:$PATH"
 "${PHP_PATH}/bin/phpize"
 
 # Configure the build
-CFLAGS="-O3 -DNDEBUG -march=native" CXXFLAGS="-O2 -DNDEBUG -march=native" ./configure --with-php-config="${PHP_PATH}/bin/php-config"
+CFLAGS="-O2 -DNDEBUG -march=native" CXXFLAGS="-O2 -DNDEBUG -march=native" ./configure --with-php-config="${PHP_PATH}/bin/php-config"
 
 # Build the extension
 make clean
