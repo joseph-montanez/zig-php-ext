@@ -50,3 +50,76 @@ I've not bothered to optimized any code so this is just an out of the box experi
 | Zig ReleaseFast       | 24.58452296257 seconds | 2.9MB        |
 | PHP's `strrev`        | 26.616330862045 seconds| 3.5MB        |
 | Zig ReleaseSafe       | 29.834988117218 seconds| 4.0MB        |
+
+
+### Differences from C API
+
+PHP internals uses macros to create a DSL for writing PHP extensions. I've started the process to make this easier but they do not work 100% the same because
+of how the macros are designed in the C API. This makes working in Zig more verbose, but at least you get type information and better type safety.
+
+**String Reverse Zig Implementation**
+
+```zig
+pub fn zif_text_reverse(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval) callconv(.C) void {
+    var var_str: [*c]u8 = null;
+    var var_len: usize = 0;
+    var retval: ?*php.zend_string = null;
+
+    var paramState = zend.ZEND_PARSE_PARAMETERS_START(1, 1, execute_data);
+    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch |err| {
+        std.debug.print("`str` parameter error: {}\n", .{err});
+        return;
+    };
+    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch |err| {
+        std.debug.print("end parameter error: {}\n", .{err});
+        return;
+    };
+
+    // Handle empty string case
+    if (var_len == 0) {
+        zend.RETURN_EMPTY_STRING(return_value);
+        return;
+    }
+
+    // Allocate memory for the zend string
+    retval = php.zend_string_alloc(var_len, false);
+    if (retval) |nonNullRetval| {
+        const str_val_ptr: [*]u8 = @as([*]u8, @ptrCast(zend.ZSTR_VAL(nonNullRetval)));
+        var i: usize = 0;
+        while (i < var_len) : (i += 1) {
+            str_val_ptr[i] = var_str[var_len - i - 1];
+        }
+        // Null-terminate the string
+        str_val_ptr[var_len] = 0;
+
+        zend.RETURN_STR(return_value, nonNullRetval);
+    } else {
+        std.debug.print("Failed to allocate memory for zend_string\n", .{});
+        zend.RETURN_EMPTY_STRING(return_value);
+    }
+}
+```
+
+**String Reverse C Implementation**
+
+```c
+PHP_FUNCTION(ctext_reverse)
+{
+	char *var = "";
+	size_t var_len = 0;
+	zend_string *retval;
+
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		Z_PARAM_STRING(var, var_len)
+	ZEND_PARSE_PARAMETERS_END();
+
+	// Create a reversed version of the input string
+	retval = zend_string_alloc(var_len, 0);
+	for (size_t i = 0; i < var_len; i++) {
+		ZSTR_VAL(retval)[i] = var[var_len - i - 1];
+	}
+	ZSTR_VAL(retval)[var_len] = '\0'; // Null-terminate the string
+
+	RETURN_STR(retval);
+}
+```
