@@ -50,7 +50,7 @@ I've not bothered to optimized any code so this is just an out of the box experi
 | Zig ReleaseFast       | 24.58452296257 seconds | 2.9MB        |
 | PHP's `strrev`        | 26.616330862045 seconds| 3.5MB        |
 | Zig ReleaseSafe       | 29.834988117218 seconds| 4.0MB        |
-
+| Pure PHP              | 280.36521196365 seconds| 3.8MB        |
 
 ### Differences from C API
 
