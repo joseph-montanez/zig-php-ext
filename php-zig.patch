@@ -122,6 +122,19 @@ index 90f6109cad..e28e52bfb6 100644
  } zend_closure;
  
  static int zend_jit_stack_check(dasm_State **Dst, const zend_op *opline, uint32_t used_stack)
+diff --git a/ext/opcache/jit/zend_jit_x86.dasc b/ext/opcache/jit/zend_jit_x86.dasc
+index 0dd938ec47..94e0a17e44 100644
+--- a/ext/opcache/jit/zend_jit_x86.dasc
++++ b/ext/opcache/jit/zend_jit_x86.dasc
+@@ -9038,7 +9038,7 @@ typedef struct _zend_closure {
+ 	zend_function     func;
+ 	zval              this_ptr;
+ 	zend_class_entry *called_scope;
+-	zif_handler       orig_internal_handler;
++	void (ZEND_FASTCALL *orig_internal_handler)(zend_execute_data *execute_data, zval *return_value);
+ } zend_closure;
+ 
+ static int zend_jit_stack_check(dasm_State **Dst, const zend_op *opline, uint32_t used_stack)
 diff --git a/ext/opcache/zend_accelerator_module.c b/ext/opcache/zend_accelerator_module.c
 index 5c69c9f788..553bb3286c 100644
 --- a/ext/opcache/zend_accelerator_module.c

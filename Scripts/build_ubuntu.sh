@@ -6,14 +6,18 @@ set -eu
 PHP_VERSION="php-8.3.12"
 BUILD_DIR="build/php-src"
 INSTALL_DIR_PREFIX="php-8.3"
-INSTALL_ZTS_DIR="$INSTALL_DIR_PREFIX-zts-debug"
-INSTALL_NON_ZTS_DIR="$INSTALL_DIR_PREFIX-non-zts-debug"
 PATCH_FILE="../../php-zig.patch"
+BUILD_TYPES=("debug" "release")
+ZTS_TYPES=("zts" "non-zts")
 
 # Create the build directories
 mkdir -p "build"
-mkdir -p "build/$INSTALL_ZTS_DIR/"
-mkdir -p "build/$INSTALL_NON_ZTS_DIR/"
+
+for build_type in "${BUILD_TYPES[@]}"; do
+  for zts_type in "${ZTS_TYPES[@]}"; do
+    mkdir -p "build/${INSTALL_DIR_PREFIX}-${zts_type}-${build_type}/"
+  done
+done
 
 # Install necessary dependencies
 echo "Installing PHP build dependencies..."
@@ -44,6 +48,13 @@ popd
 build_php() {
   local install_dir=$1
   local zts_flag=$2
+  local build_type=$3
+  local enable_debug="--enable-debug"
+
+  # Set release options
+  if [[ "$build_type" == "release" ]]; then
+    enable_debug="--disable-debug --enable-opcache"
+  fi
 
   # Enter the PHP source directory
   pushd "$BUILD_DIR"
@@ -52,12 +63,14 @@ build_php() {
   echo "Cleaning previous builds..."
   make clean || true
 
+  # Run ./buildconf to ensure ./configure exists
+  echo "Running ./buildconf to generate configure script..."
+  ./buildconf --force
+
   # Configure PHP
-  echo "Configuring PHP (ZTS: $zts_flag) with embedding..."
+  echo "Configuring PHP (ZTS: $zts_flag, Build Type: $build_type) with embedding..."
   ./configure \
     --prefix="$(pwd)/../$install_dir/" \
-    --enable-debug \
-    --disable-opcache \
     --enable-embed=shared \
     --disable-phar \
     --without-libxml \
@@ -68,10 +81,11 @@ build_php() {
     --disable-xmlwriter \
     --disable-cgi \
     $zts_flag \
+    $enable_debug \
     --with-sqlite3
 
   # Build PHP
-  echo "Building PHP (ZTS: $zts_flag)..."
+  echo "Building PHP (ZTS: $zts_flag, Build Type: $build_type)..."
   make -j$(nproc)
 
   # Install PHP
@@ -81,10 +95,16 @@ build_php() {
   popd
 }
 
-# Build ZTS version
-build_php "$INSTALL_ZTS_DIR" "--enable-zts"
+# Loop over ZTS/Non-ZTS and Debug/Release build types
+for build_type in "${BUILD_TYPES[@]}"; do
+  for zts_type in "${ZTS_TYPES[@]}"; do
+    install_dir="${INSTALL_DIR_PREFIX}-${zts_type}-${build_type}"
+    zts_flag="--disable-zts"
+    if [[ "$zts_type" == "zts" ]]; then
+      zts_flag="--enable-zts"
+    fi
+    build_php "$install_dir" "$zts_flag" "$build_type"
+  done
+done
 
-# Build Non-ZTS version
-build_php "$INSTALL_NON_ZTS_DIR" "--disable-zts"
-
-echo "PHP $PHP_VERSION built successfully with ZTS and Non-ZTS versions."
+echo "PHP $PHP_VERSION built successfully with ZTS and Non-ZTS, Debug and Release versions."
