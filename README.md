@@ -43,14 +43,15 @@ I've not bothered to optimized any code so this is just an out of the box experi
 
 1,000,000,000 (One Billion) iterations of a string reverse
 
-| Version               | Time (seconds)         | Memory Usage |
-|-----------------------|------------------------|--------------|
-| C 03 Optimization     | 23.962615966797 seconds| 2.5MB        |
-| C 02 Optimization     | 24.240067005157 seconds| 3.6MB        |
-| Zig ReleaseFast       | 24.58452296257 seconds | 2.9MB        |
-| PHP's `strrev`        | 26.616330862045 seconds| 3.5MB        |
-| Zig ReleaseSafe       | 29.834988117218 seconds| 4.0MB        |
-| Pure PHP              | 280.36521196365 seconds| 3.8MB        |
+| Version           |   Time (seconds) |   Memory Usage (MB) |   Speed Difference (%) |
+|:------------------|-----------------:|--------------------:|-----------------------:|
+| C 03 Optimization |          23.9626 |                 2.5 |                0       |
+| C 02 Optimization |          24.2401 |                 3.6 |              1% slower |
+| Zig ReleaseFast   |          24.5845 |                 2.9 |              2% slower |
+| PHP’s strrev      |          26.6163 |                 3.5 |            11% slower  |
+| Zig ReleaseSafe   |          29.835  |                 4   |            24% slower  |
+| Pure PHP          |         280.365  |                 3.8 |        1070% slower    |
+
 
 ### Differences from C API
 
