@@ -1,15 +1,369 @@
 const std = @import("std");
 
 const php = @cImport({
-    @cDefine("_GNU_SOURCE", "1");
-    @cDefine("ZEND_DEBUG", "1");
-    @cDefine("ZTS", "1");
     @cInclude("php_config.h");
     @cInclude("zend_API.h");
     @cInclude("php.h");
     @cInclude("ext/standard/info.h");
     @cInclude("wrapper.h");
 });
+
+pub inline fn zval_get_type(pz: *const php.zval) *u8 {
+    return @as(*u8, @ptrCast(&pz.u1.v.type));
+}
+
+pub inline fn Z_TYPE(zval: php.zval) *u8 {
+    return zval_get_type(&zval);
+}
+
+pub inline fn Z_TYPE_P(zval_p: *php.zval) *u8 {
+    return Z_TYPE(zval_p.*);
+}
+
+pub inline fn Z_TYPE_INFO(zval: *php.zval) *u32 {
+    return &zval.u1.type_info;
+}
+
+pub inline fn Z_TYPE_INFO_P(zval_p: *php.zval) *u32 {
+    return Z_TYPE_INFO(zval_p);
+}
+
+pub inline fn Z_TYPE_FLAGS(zval: php.zval) *u32 {
+    return @as(*u32, @ptrCast(&zval.u1.v.type_flags));
+}
+
+pub inline fn Z_TYPE_FLAGS_P(zval_p: *php.zval) *u32 {
+    return Z_TYPE_FLAGS(zval_p.*);
+}
+
+pub inline fn Z_CONSTANT(zval: php.zval) bool {
+    return Z_TYPE(zval) == php.IS_CONSTANT_AST;
+}
+
+pub inline fn Z_CONSTANT_P(zval_p: *php.zval) bool {
+    return Z_CONSTANT(zval_p.*);
+}
+
+pub inline fn Z_REFCOUNTED(zval: php.zval) bool {
+    return Z_TYPE_FLAGS(zval) != 0;
+}
+
+pub inline fn Z_REFCOUNTED_P(zval_p: *php.zval) bool {
+    return Z_REFCOUNTED(zval_p.*);
+}
+
+pub inline fn Z_COLLECTABLE(zval: php.zval) bool {
+    return (Z_TYPE_FLAGS(zval) & php.IS_TYPE_COLLECTABLE) != 0;
+}
+
+pub inline fn Z_COLLECTABLE_P(zval_p: *php.zval) bool {
+    return Z_COLLECTABLE(zval_p.*);
+}
+
+pub inline fn Z_COPYABLE(zval: php.zval) bool {
+    return Z_TYPE(zval) == php.IS_ARRAY;
+}
+
+pub inline fn Z_COPYABLE_P(zval_p: *php.zval) bool {
+    return Z_COPYABLE(zval_p.*);
+}
+
+pub inline fn Z_IMMUTABLE(zval: php.zval) bool {
+    return Z_TYPE_INFO(zval).* == php.IS_ARRAY;
+}
+
+pub inline fn Z_IMMUTABLE_P(zval_p: *php.zval) bool {
+    return Z_IMMUTABLE(zval_p.*);
+}
+
+pub inline fn Z_OPT_TYPE(zval: php.zval) *u32 {
+    const opt_type = @as(u32, @intCast(Z_TYPE_INFO(zval).* & php.Z_TYPE_MASK));
+    return &@as(*const u32, &opt_type).*;
+}
+
+pub inline fn Z_OPT_TYPE_P(zval_p: *php.zval) *u32 {
+    return Z_OPT_TYPE(zval_p.*);
+}
+
+pub inline fn Z_OPT_CONSTANT(zval: php.zval) bool {
+    return Z_OPT_TYPE(zval) == php.IS_CONSTANT_AST;
+}
+
+pub inline fn Z_OPT_CONSTANT_P(zval_p: *php.zval) bool {
+    return Z_OPT_CONSTANT(zval_p.*);
+}
+
+pub inline fn Z_OPT_REFCOUNTED(zval: php.zval) bool {
+    return php.Z_TYPE_INFO_REFCOUNTED(Z_TYPE_INFO(zval).*);
+}
+
+pub inline fn Z_OPT_REFCOUNTED_P(zval_p: *php.zval) bool {
+    return Z_OPT_REFCOUNTED(zval_p.*);
+}
+
+pub inline fn Z_OPT_COPYABLE(zval: php.zval) bool {
+    return Z_OPT_TYPE(zval) == php.IS_ARRAY;
+}
+
+pub inline fn Z_OPT_COPYABLE_P(zval_p: *php.zval) bool {
+    return Z_OPT_COPYABLE(zval_p.*);
+}
+
+pub inline fn Z_OPT_ISREF(zval: php.zval) bool {
+    return Z_OPT_TYPE(zval) == php.IS_REFERENCE;
+}
+
+pub inline fn Z_OPT_ISREF_P(zval_p: *php.zval) bool {
+    return Z_OPT_ISREF(zval_p.*);
+}
+
+pub inline fn Z_ISREF(zval: php.zval) bool {
+    return Z_TYPE(zval) == php.IS_REFERENCE;
+}
+
+pub inline fn Z_ISREF_P(zval_p: *php.zval) bool {
+    return Z_ISREF(zval_p.*);
+}
+
+pub inline fn Z_ISUNDEF(zval: php.zval) bool {
+    return Z_TYPE(zval) == php.IS_UNDEF;
+}
+
+pub inline fn Z_ISUNDEF_P(zval_p: *php.zval) bool {
+    return Z_ISUNDEF(zval_p.*);
+}
+
+pub inline fn Z_ISNULL(zval: php.zval) bool {
+    return Z_TYPE(zval) == php.IS_NULL;
+}
+
+pub inline fn Z_ISNULL_P(zval_p: *php.zval) bool {
+    return Z_ISNULL(zval_p.*);
+}
+
+pub inline fn Z_ISERROR(zval: php.zval) bool {
+    return Z_TYPE(zval) == php._IS_ERROR;
+}
+
+pub inline fn Z_ISERROR_P(zval_p: *php.zval) bool {
+    return Z_ISERROR(zval_p.*);
+}
+
+pub inline fn Z_LVAL(zval: php.zval) c_long {
+    return zval.value.lval;
+}
+
+pub inline fn Z_LVAL_P(zval_p: *php.zval) c_long {
+    return Z_LVAL(zval_p.*);
+}
+
+pub inline fn Z_DVAL(zval: php.zval) f64 {
+    return zval.value.dval;
+}
+
+pub inline fn Z_DVAL_P(zval_p: *php.zval) f64 {
+    return Z_DVAL(zval_p.*);
+}
+
+pub inline fn Z_STR(zval: php.zval) *[*c]php.zend_string {
+    return &zval.value.str;
+}
+
+pub inline fn Z_STR_P(zval_p: *php.zval) *[*c]php.zend_string {
+    return &(zval_p.*.value.str);
+}
+
+pub inline fn ZSTR_VAL(zstr: *php.zend_string) *@TypeOf(zstr.*.val) {
+    return &zstr.*.val;
+}
+
+pub inline fn Z_STRVAL(zval: php.zval) *[*c]u8 {
+    return ZSTR_VAL(Z_STR(zval));
+}
+
+pub inline fn Z_STRVAL_P(zval_p: *php.zval) [*c]u8 {
+    return Z_STRVAL(zval_p.*);
+}
+
+pub inline fn Z_STRLEN(zval: php.zval) usize {
+    return php.ZSTR_LEN(Z_STR(zval));
+}
+
+pub inline fn Z_STRLEN_P(zval_p: *php.zval) usize {
+    return Z_STRLEN(zval_p.*);
+}
+
+pub inline fn Z_STRHASH(zval: php.zval) u64 {
+    return php.ZSTR_HASH(Z_STR(zval));
+}
+
+pub inline fn Z_STRHASH_P(zval_p: *php.zval) u64 {
+    return Z_STRHASH(zval_p.*);
+}
+
+pub inline fn Z_ARR(zval: php.zval) *php.zend_array {
+    return zval.value.arr;
+}
+
+pub inline fn Z_ARR_P(zval_p: *php.zval) *php.zend_array {
+    return Z_ARR(zval_p.*);
+}
+
+pub inline fn Z_ARRVAL(zval: php.zval) *php.zend_array {
+    return Z_ARR(zval);
+}
+
+pub inline fn Z_ARRVAL_P(zval_p: *php.zval) *php.zend_array {
+    return Z_ARRVAL(zval_p.*);
+}
+
+pub inline fn Z_OBJ(zval: php.zval) *php.zend_object {
+    return zval.value.obj;
+}
+
+pub inline fn Z_OBJ_P(zval_p: *php.zval) *php.zend_object {
+    return Z_OBJ(zval_p.*);
+}
+
+pub inline fn Z_OBJ_HT(zval: php.zval) *const php.zend_object_handlers {
+    return Z_OBJ(zval).handlers;
+}
+
+pub inline fn Z_OBJ_HT_P(zval_p: *php.zval) *const php.zend_object_handlers {
+    return Z_OBJ_HT(zval_p.*);
+}
+
+pub inline fn Z_OBJ_HANDLER(zval: php.zval, hf: anytype) @TypeOf(Z_OBJ_HT(zval).*[hf]) {
+    return Z_OBJ_HT(zval).*[hf];
+}
+
+pub inline fn Z_OBJ_HANDLER_P(zv_p: *php.zval, hf: anytype) @TypeOf(Z_OBJ_HANDLER(zv_p.*, hf)) {
+    return Z_OBJ_HANDLER(zv_p.*, hf);
+}
+
+pub inline fn Z_OBJ_HANDLE(zval: php.zval) u32 {
+    return Z_OBJ(zval).handle;
+}
+
+pub inline fn Z_OBJ_HANDLE_P(zval_p: *php.zval) u32 {
+    return Z_OBJ_HANDLE(zval_p.*);
+}
+
+pub inline fn Z_OBJCE(zval: php.zval) *php.zend_class_entry {
+    return Z_OBJ(zval).ce;
+}
+
+pub inline fn Z_OBJCE_P(zval_p: *php.zval) *php.zend_class_entry {
+    return Z_OBJCE(zval_p.*);
+}
+
+pub inline fn Z_OBJPROP(zval: php.zval) *php.zend_array {
+    return Z_OBJ_HT(zval).get_properties.?(Z_OBJ(zval));
+}
+
+pub inline fn Z_OBJPROP_P(zval_p: *php.zval) *php.zend_array {
+    return Z_OBJPROP(zval_p.*);
+}
+
+pub inline fn Z_RES(zval: php.zval) *php.zend_resource {
+    return zval.value.res;
+}
+
+pub inline fn Z_RES_P(zval_p: *php.zval) *php.zend_resource {
+    return Z_RES(zval_p.*);
+}
+
+pub inline fn Z_RES_HANDLE(zval: php.zval) u64 {
+    return Z_RES(zval).handle;
+}
+
+pub inline fn Z_RES_HANDLE_P(zval_p: *php.zval) u64 {
+    return Z_RES_HANDLE(zval_p.*);
+}
+
+pub inline fn Z_RES_TYPE(zval: php.zval) i32 {
+    return Z_RES(zval).type;
+}
+
+pub inline fn Z_RES_TYPE_P(zval_p: *php.zval) i32 {
+    return Z_RES_TYPE(zval_p.*);
+}
+
+pub inline fn Z_RES_VAL(zval: php.zval) ?*anyopaque {
+    return Z_RES(zval).ptr;
+}
+
+pub inline fn Z_RES_VAL_P(zval_p: *php.zval) ?*anyopaque {
+    return Z_RES_VAL(zval_p.*);
+}
+
+pub inline fn Z_REF(zval: php.zval) *php.zend_reference {
+    return zval.value.ref;
+}
+
+pub inline fn Z_REF_P(zval_p: *php.zval) *php.zend_reference {
+    return Z_REF(zval_p.*);
+}
+
+pub inline fn Z_REFVAL(zval: php.zval) *php.zval {
+    return &Z_REF(zval).val;
+}
+
+pub inline fn Z_REFVAL_P(zval_p: *php.zval) *php.zval {
+    return Z_REFVAL(zval_p.*);
+}
+
+pub inline fn Z_AST(zval: php.zval) *php.zend_ast_ref {
+    return zval.value.ast;
+}
+
+pub inline fn Z_AST_P(zval_p: *php.zval) *php.zend_ast_ref {
+    return Z_AST(zval_p.*);
+}
+
+pub inline fn GC_AST(p: *php.zend_ast_ref) *php.zend_ast {
+    return @as(*php.zend_ast, @ptrCast(@as([*]u8, @ptrCast(p)) + @sizeOf(php.zend_ast_ref)));
+}
+
+pub inline fn Z_ASTVAL(zval: php.zval) *php.zend_ast {
+    return GC_AST(Z_AST(zval));
+}
+
+pub inline fn Z_ASTVAL_P(zval_p: *php.zval) *php.zend_ast {
+    return Z_ASTVAL(zval_p.*);
+}
+
+pub inline fn Z_INDIRECT(zval: php.zval) *php.zval {
+    return zval.value.zv;
+}
+
+pub inline fn Z_INDIRECT_P(zval_p: *php.zval) *php.zval {
+    return Z_INDIRECT(zval_p.*);
+}
+
+pub inline fn Z_CE(zval: php.zval) *php.zend_class_entry {
+    return zval.value.ce;
+}
+
+pub inline fn Z_CE_P(zval_p: *php.zval) *php.zend_class_entry {
+    return Z_CE(zval_p.*);
+}
+
+pub inline fn Z_FUNC(zval: php.zval) *php.zend_function {
+    return zval.value.func;
+}
+
+pub inline fn Z_FUNC_P(zval_p: *php.zval) *php.zend_function {
+    return Z_FUNC(zval_p.*);
+}
+
+pub inline fn Z_PTR(zval: php.zval) ?*anyopaque {
+    return zval.value.ptr;
+}
+
+pub inline fn Z_PTR_P(zval_p: *php.zval) ?*anyopaque {
+    return Z_PTR(zval_p.*);
+}
 
 pub fn ZEND_TYPE_INIT_NONE(type_mask: u32) php.zend_type {
     return php.zend_type{ .ptr = null, .type_mask = type_mask };
@@ -158,13 +512,11 @@ pub fn ZVAL_NULL(z: *php.zval) void {
 }
 
 pub fn ZVAL_FALSE(z: *php.zval) void {
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_FALSE;
+    Z_TYPE_INFO_P(z).* = php.IS_FALSE;
 }
 
 pub fn ZVAL_TRUE(z: *php.zval) void {
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_TRUE;
+    Z_TYPE_INFO_P(z).* = php.IS_TRUE;
 }
 
 pub fn ZVAL_BOOL(z: *php.zval, b: bool) void {
@@ -187,28 +539,24 @@ pub fn ZVAL_DOUBLE(z: *php.zval, d: f64) void {
 }
 
 pub fn ZVAL_STR(z: *php.zval, s: *php.zend_string) void {
-    const str_ptr = php.Z_STR_P(z);
-    str_ptr.* = s;
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = if (php.ZSTR_IS_INTERNED(s)) php.IS_INTERNED_STRING_EX else php.IS_STRING_EX;
+    Z_STR_P(z).* = s;
+    Z_TYPE_INFO_P(z).* = if (php.ZSTR_IS_INTERNED(s) != 0) php.IS_INTERNED_STRING_EX else php.IS_STRING_EX;
 }
 
 pub fn ZVAL_INTERNED_STR(z: *php.zval, s: *php.zend_string) void {
-    const str_ptr = php.Z_STR_P(z);
-    str_ptr.* = s;
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_INTERNED_STRING_EX;
+    Z_STR_P(z).* = s;
+    Z_TYPE_INFO_P(z).* = php.IS_INTERNED_STRING_EX;
 }
 
 pub fn ZVAL_NEW_STR(z: *php.zval, s: *php.zend_string) void {
-    const str_ptr = php.Z_STR_P(z);
+    const str_ptr = Z_STR_P(z);
     str_ptr.* = s;
     const z_ptr = php.Z_TYPE_INFO_P(z);
     z_ptr.* = php.IS_STRING_EX;
 }
 
 pub fn ZVAL_STR_COPY(z: *php.zval, s: *php.zend_string) void {
-    const str_ptr = php.Z_STR_P(z);
+    const str_ptr = Z_STR_P(z);
     str_ptr.* = s;
     const z_ptr = php.Z_TYPE_INFO_P(z);
     if (php.ZSTR_IS_INTERNED(s)) {
@@ -220,7 +568,7 @@ pub fn ZVAL_STR_COPY(z: *php.zval, s: *php.zend_string) void {
 }
 
 pub fn ZVAL_ARR(z: *php.zval, a: *php.zend_array) void {
-    const arr_ptr = php.Z_ARR_P(z);
+    const arr_ptr = Z_ARR_P(z);
     arr_ptr.* = a.*;
     z.u1.type_info = php.IS_ARRAY_EX;
 }

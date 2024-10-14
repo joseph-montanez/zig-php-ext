@@ -1,7 +1,4 @@
 const php = @cImport({
-    @cDefine("_GNU_SOURCE", "1");
-    @cDefine("ZEND_DEBUG", "1");
-    @cDefine("ZTS", "1");
     @cInclude("php_config.h");
     @cInclude("zend_API.h");
     @cInclude("php.h");

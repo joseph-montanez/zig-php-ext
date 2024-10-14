@@ -1,0 +1,7 @@
+ARG_ENABLE('ext2', 'ext2 support', 'no');
+
+if (PHP_EXT2 != 'no') {
+	AC_DEFINE('HAVE_EXT2', 1, 'ext2 support enabled');
+
+	EXTENSION('ext2', 'ext2.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}

@@ -7,9 +7,6 @@ const config = @cImport({
 });
 
 const php = @cImport({
-    @cDefine("_GNU_SOURCE", "1");
-    @cDefine("ZEND_DEBUG", "1");
-    @cDefine("ZTS", "1");
     @cInclude("php_config.h");
     @cInclude("zend_API.h");
     @cInclude("php.h");
@@ -82,8 +79,12 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
     retval = php.zend_string_init_wrapper(formatted_str.ptr, formatted_str.len, 0);
 
     if (retval) |nonOptionalRetval| {
-        // std.debug.print("NO! GOD NO?\n", .{});
-        zend.RETURN_STR(nonOptionalRetval, @constCast(return_value));
+        std.debug.print("String copied. Attempting to return...\n", .{});
+
+        // Try to return the string
+        zend.RETURN_STR(return_value, nonOptionalRetval);
+
+        std.debug.print("RETURN_STR completed\n", .{});
     } else {
         std.debug.print("How did we get here?!\n", .{});
         // Handle the case where retval is null
@@ -91,9 +92,50 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
     }
 }
 
+var arginfo_text_reverse: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(1, false, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
+pub fn zif_text_reverse(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval) callconv(.C) void {
+    var var_str: [*c]u8 = null;
+    var var_len: usize = 0;
+    var retval: ?*php.zend_string = null;
+
+    var paramState = zend.ZEND_PARSE_PARAMETERS_START(1, 1, execute_data);
+    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch |err| {
+        std.debug.print("`str` parameter error: {}\n", .{err});
+        return;
+    };
+    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch |err| {
+        std.debug.print("end parameter error: {}\n", .{err});
+        return;
+    };
+
+    // Handle empty string case
+    if (var_len == 0) {
+        zend.RETURN_EMPTY_STRING(return_value);
+        return;
+    }
+
+    // Allocate memory for the zend string
+    retval = php.zend_string_alloc(var_len, false);
+    if (retval) |nonNullRetval| {
+        const str_val_ptr: [*]u8 = @as([*]u8, @ptrCast(zend.ZSTR_VAL(nonNullRetval)));
+        var i: usize = 0;
+        while (i < var_len) : (i += 1) {
+            str_val_ptr[i] = var_str[var_len - i - 1];
+        }
+        // Null-terminate the string
+        str_val_ptr[var_len] = 0;
+
+        zend.RETURN_STR(return_value, nonNullRetval);
+    } else {
+        std.debug.print("Failed to allocate memory for zend_string\n", .{});
+        zend.RETURN_EMPTY_STRING(return_value);
+    }
+}
+
 const ext_functions = [_]php.zend_function_entry{
     zend.ZEND_FE("test1", zif_test1, &arginfo_test1, arginfo_test1.len - 1),
     zend.ZEND_FE("test2", zif_test2, &arginfo_test2, arginfo_test2.len - 1),
+    zend.ZEND_FE("text_reverse", zif_text_reverse, &arginfo_text_reverse, arginfo_text_reverse.len - 1),
     zend.ZEND_FE_END(),
 };
 
@@ -101,18 +143,15 @@ export fn zm_info_ext(_: [*c]php.zend_module_entry) callconv(.C) void {
     // Implement this function if needed
 }
 
-export fn zm_startup_ext(activation_type: c_int, module_number: c_int) callconv(.C) php.zend_result {
-    std.debug.print("Raylib module startup. Type: {d}, Module number: {d}\n", .{ activation_type, module_number });
+export fn zm_startup_ext(_: c_int, _: c_int) callconv(.C) php.zend_result {
     return php.SUCCESS;
 }
 
-export fn zm_shutdown_ext(activation_type: c_int, module_number: c_int) callconv(.C) php.zend_result {
-    std.debug.print("Raylib module shutdown. Type: {d}, Module number: {d}\n", .{ activation_type, module_number });
+export fn zm_shutdown_ext(_: c_int, _: c_int) callconv(.C) php.zend_result {
     return php.SUCCESS;
 }
 
-export fn zm_activate_ext(activation_type: c_int, module_number: c_int) callconv(.C) php.zend_result {
-    std.debug.print("Raylib module activated. Type: {d}, Module number: {d}\n", .{ activation_type, module_number });
+export fn zm_activate_ext(_: c_int, _: c_int) callconv(.C) php.zend_result {
     return php.SUCCESS;
 }
 
@@ -125,7 +164,7 @@ const base_module_entry = blk: {
     const entry = php.zend_module_entry{
         .size = @sizeOf(php.zend_module_entry),
         .zend_api = php.PHP_API_VERSION,
-        .zend_debug = 0,
+        .zend_debug = if (isDebugBuild()) 0 else 1,
         .zts = if (@hasDecl(config, "ZTS")) 1 else 0,
         .ini_entry = null,
         .name = "ext",
@@ -137,7 +176,6 @@ const base_module_entry = blk: {
         .info_func = zm_info_ext,
         .version = "1.0",
         .globals_size = 0,
-        .globals_id_ptr = null,
         .globals_ctor = null,
         .globals_dtor = null,
         .post_deactivate_func = null,
@@ -145,10 +183,10 @@ const base_module_entry = blk: {
         .type = 0,
         .handle = null,
         .module_number = 0,
-        .build_id = std.fmt.comptimePrint("API{d},{s},{s}", .{
+        .build_id = std.fmt.comptimePrint("API{d},{s}{s}", .{
             php.PHP_API_VERSION,
             if (@hasDecl(config, "ZTS")) "TS" else "NTS",
-            if (@hasDecl(config, "ZEND_DEBUG")) "debug" else "release",
+            if (isDebugBuild()) ",debug" else "",
         }),
     };
 
@@ -158,10 +196,18 @@ const base_module_entry = blk: {
     };
 };
 
+fn isDebugBuild() bool {
+    if (@hasDecl(config, "ZEND_DEBUG")) {
+        const debug_value = @field(config, "ZEND_DEBUG");
+        return debug_value != 0;
+    }
+    return false;
+}
+
 var ext_module_entry: BaseModuleEntry = base_module_entry;
 
 fn get_module() callconv(.C) [*c]php.zend_module_entry {
-    std.debug.print("get_module called!\n", .{});
+    // std.debug.print("get_module called!\n", .{});
     return &ext_module_entry.entry;
 }
 

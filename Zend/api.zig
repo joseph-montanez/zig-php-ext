@@ -1,9 +1,6 @@
 const std = @import("std");
 
 const php = @cImport({
-    @cDefine("_GNU_SOURCE", "1");
-    @cDefine("ZEND_DEBUG", "1");
-    @cDefine("ZTS", "1");
     @cInclude("php_config.h");
     @cInclude("zend_API.h");
     @cInclude("php.h");
@@ -147,22 +144,226 @@ pub fn ZEND_PARSE_PARAMETERS_START(min_num_args: u32, max_num_args: u32, execute
     return ZEND_PARSE_PARAMETERS_START_EX(0, min_num_args, max_num_args, execute_data);
 }
 
-pub fn RETURN_STR(s: *php.zend_string, return_value: *php.zval) void {
-    RETVAL_STR(s, return_value);
+pub fn RETVAL_BOOL(return_value: *php.zval, b: bool) void {
+    types.ZVAL_BOOL(return_value, b);
 }
 
-pub fn RETVAL_STR(s: *php.zend_string, return_value: *php.zval) void {
-    ZVAL_STR(return_value, s);
+pub fn RETVAL_NULL(return_value: *php.zval) void {
+    types.ZVAL_NULL(return_value);
 }
 
-pub fn ZVAL_STR(z: *php.zval, s: *php.zend_string) void {
-    z.value.str = s;
+pub fn RETVAL_LONG(return_value: *php.zval, l: i64) void {
+    types.ZVAL_LONG(return_value, l);
+}
 
-    if (string.ZSTR_IS_INTERNED(s)) {
-        z.u1.type_info = php.IS_INTERNED_STRING_EX;
-    } else {
-        z.u1.type_info = php.IS_STRING_EX;
-    }
+pub fn RETVAL_DOUBLE(return_value: *php.zval, d: f64) void {
+    types.ZVAL_DOUBLE(return_value, d);
+}
+
+pub fn RETVAL_STR(return_value: *php.zval, s: *php.zend_string) void {
+    types.ZVAL_STR(return_value, s);
+}
+
+pub fn RETVAL_INTERNED_STR(return_value: *php.zval, s: *php.zend_string) void {
+    types.ZVAL_INTERNED_STR(return_value, s);
+}
+
+pub fn RETVAL_NEW_STR(return_value: *php.zval, s: *php.zend_string) void {
+    types.ZVAL_NEW_STR(return_value, s);
+}
+
+pub fn RETVAL_STR_COPY(return_value: *php.zval, s: *php.zend_string) void {
+    types.ZVAL_STR_COPY(return_value, s);
+}
+
+pub fn RETVAL_STRING(return_value: *php.zval, s: [*c]const u8) void {
+    types.ZVAL_STRING(return_value, s);
+}
+
+pub fn RETVAL_STRINGL(return_value: *php.zval, s: [*c]const u8, l: usize) void {
+    types.ZVAL_STRINGL(return_value, s, l);
+}
+
+pub fn RETVAL_STRING_FAST(return_value: *php.zval, s: [*c]const u8) void {
+    types.ZVAL_STRING_FAST(return_value, s);
+}
+
+pub fn RETVAL_STRINGL_FAST(return_value: *php.zval, s: [*c]const u8, l: usize) void {
+    types.ZVAL_STRINGL_FAST(return_value, s, l);
+}
+pub fn ZVAL_EMPTY_STRING(z: *php.zval) void {
+    types.ZVAL_INTERNED_STR(z, php.ZSTR_EMPTY_ALLOC());
+}
+
+pub fn RETVAL_EMPTY_STRING(return_value: *php.zval) void {
+    ZVAL_EMPTY_STRING(return_value);
+}
+
+pub fn RETVAL_CHAR(return_value: *php.zval, c: u8) void {
+    types.ZVAL_CHAR(return_value, c);
+}
+
+pub fn RETVAL_RES(return_value: *php.zval, r: *php.zend_resource) void {
+    types.ZVAL_RES(return_value, r);
+}
+
+pub fn RETVAL_ARR(return_value: *php.zval, r: *php.zend_array) void {
+    types.ZVAL_ARR(return_value, r);
+}
+
+pub fn RETVAL_EMPTY_ARRAY(return_value: *php.zval) void {
+    types.ZVAL_EMPTY_ARRAY(return_value);
+}
+
+pub fn RETVAL_OBJ(return_value: *php.zval, r: *php.zend_object) void {
+    types.ZVAL_OBJ(return_value, r);
+}
+
+pub fn RETVAL_OBJ_COPY(return_value: *php.zval, r: *php.zend_object) void {
+    types.ZVAL_OBJ_COPY(return_value, r);
+}
+
+pub fn RETVAL_COPY(return_value: *php.zval, zv: *php.zval) void {
+    types.ZVAL_COPY(return_value, zv);
+}
+
+pub fn RETVAL_COPY_VALUE(return_value: *php.zval, zv: *php.zval) void {
+    types.ZVAL_COPY_VALUE(return_value, zv);
+}
+
+pub fn RETVAL_COPY_DEREF(return_value: *php.zval, zv: *php.zval) void {
+    types.ZVAL_COPY_DEREF(return_value, zv);
+}
+
+pub fn RETVAL_ZVAL(return_value: *php.zval, zv: *php.zval, copy: bool, dtor: bool) void {
+    types.ZVAL_ZVAL(return_value, zv, copy, dtor);
+}
+
+pub fn RETVAL_FALSE(return_value: *php.zval) void {
+    types.ZVAL_FALSE(return_value);
+}
+
+pub fn RETVAL_TRUE(return_value: *php.zval) void {
+    types.ZVAL_TRUE(return_value);
+}
+
+pub fn RETURN_BOOL(return_value: *php.zval, b: bool) void {
+    RETVAL_BOOL(return_value, b);
+    return;
+}
+
+pub fn RETURN_NULL(return_value: *php.zval) void {
+    RETVAL_NULL(return_value);
+    return;
+}
+
+pub fn RETURN_LONG(return_value: *php.zval, l: i64) void {
+    RETVAL_LONG(return_value, l);
+    return;
+}
+
+pub fn RETURN_DOUBLE(return_value: *php.zval, d: f64) void {
+    RETVAL_DOUBLE(return_value, d);
+    return;
+}
+
+pub fn RETURN_STR(return_value: *php.zval, s: *php.zend_string) void {
+    RETVAL_STR(return_value, s);
+    return;
+}
+
+pub fn RETURN_INTERNED_STR(return_value: *php.zval, s: *php.zend_string) void {
+    RETVAL_INTERNED_STR(return_value, s);
+    return;
+}
+
+pub fn RETURN_NEW_STR(return_value: *php.zval, s: *php.zend_string) void {
+    RETVAL_NEW_STR(return_value, s);
+    return;
+}
+
+pub fn RETURN_STR_COPY(return_value: *php.zval, s: *php.zend_string) void {
+    RETVAL_STR_COPY(return_value, s);
+    return;
+}
+
+pub fn RETURN_STRING(return_value: *php.zval, s: [*c]const u8) void {
+    RETVAL_STRING(return_value, s);
+}
+
+pub fn RETURN_STRINGL(return_value: *php.zval, s: [*c]const u8, l: usize) void {
+    RETVAL_STRINGL(return_value, s, l);
+}
+
+pub fn RETURN_STRING_FAST(return_value: *php.zval, s: [*c]const u8) void {
+    RETVAL_STRING_FAST(return_value, s);
+}
+
+pub fn RETURN_STRINGL_FAST(s: [*c]const u8, l: usize, return_value: *php.zval) void {
+    RETVAL_STRINGL_FAST(s, l, return_value);
+}
+
+pub fn RETURN_EMPTY_STRING(return_value: *php.zval) void {
+    RETVAL_EMPTY_STRING(return_value);
+    return;
+}
+
+pub fn RETURN_CHAR(return_value: *php.zval, c: u8) void {
+    RETVAL_CHAR(return_value, c);
+}
+
+pub fn RETURN_RES(return_value: *php.zval, r: *php.zend_resource) void {
+    RETVAL_RES(return_value, r);
+}
+
+pub fn RETURN_ARR(return_value: *php.zval, r: *php.zend_array) void {
+    RETVAL_ARR(return_value, r);
+}
+
+pub fn RETURN_EMPTY_ARRAY(return_value: *php.zval) void {
+    RETVAL_EMPTY_ARRAY(return_value);
+}
+
+pub fn RETURN_OBJ(return_value: *php.zval, r: *php.zend_object) void {
+    RETVAL_OBJ(return_value, r);
+}
+
+pub fn RETURN_OBJ_COPY(return_value: *php.zval, r: *php.zend_object) void {
+    RETVAL_OBJ_COPY(return_value, r);
+}
+
+pub fn RETURN_COPY(return_value: *php.zval, zv: *php.zval) void {
+    RETVAL_COPY(return_value, zv);
+}
+
+pub fn RETURN_COPY_VALUE(return_value: *php.zval, zv: *php.zval) void {
+    RETVAL_COPY_VALUE(return_value, zv);
+    return;
+}
+
+pub fn RETURN_COPY_DEREF(zv: *php.zval, return_value: *php.zval) void {
+    RETVAL_COPY_DEREF(zv, return_value);
+    return;
+}
+
+pub fn RETURN_ZVAL(zv: *php.zval, copy: bool, dtor: bool, return_value: *php.zval) void {
+    RETVAL_ZVAL(zv, copy, dtor, return_value);
+    return;
+}
+
+pub fn RETURN_FALSE(return_value: *php.zval) void {
+    RETVAL_FALSE(return_value);
+    return;
+}
+
+pub fn RETURN_TRUE(return_value: *php.zval) void {
+    RETVAL_TRUE(return_value);
+    return;
+}
+
+pub fn RETURN_THROWS(return_value: *php.zval) void {
+    _ = return_value;
+    std.debug.assert(php.EG.exception != null);
 }
 
 pub fn ZEND_FENTRY(
