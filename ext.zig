@@ -45,7 +45,7 @@ fn format_string(name: []const u8) ![]const u8 {
     return try std.fmt.allocPrint(allocator, "Hello {s}", .{name});
 }
 
-var arginfo_test1: [1]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(false, 0, php.IS_VOID, false, false)};
+var arginfo_test1: [1]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(0, false, php.IS_VOID, false, false)};
 fn zif_test1(execute_data: [*c]php.zend_execute_data, _: [*c]php.zval) callconv(.C) void {
     if (execute_data.*.This.u2.num_args != 0) {
         php.zend_wrong_parameters_none_error();
@@ -54,7 +54,7 @@ fn zif_test1(execute_data: [*c]php.zend_execute_data, _: [*c]php.zval) callconv(
     std.debug.print("test1() - The extension {s} is loaded and working!\r\n", .{"EXT"});
 }
 
-var arginfo_test2: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(false, 0, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
+var arginfo_test2: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(0, false, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
 fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval) callconv(.C) void {
     var buffer: [6]u8 = [_]u8{ 'W', 'o', 'r', 'l', 'd', 0 };
     var var_str: [*c]u8 = &buffer[0];

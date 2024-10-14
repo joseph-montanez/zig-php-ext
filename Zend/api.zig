@@ -199,3 +199,146 @@ pub fn ZEND_FE_END() php.zend_function_entry {
         .flags = 0,
     };
 }
+
+pub fn Z_PARAM_GET_PREV_ZVAL(state: *ParseState, dest: *?php.zval) void {
+    _ = php.zend_parse_arg_zval_deref(state._arg, &dest, 0);
+}
+
+pub fn Z_PARAM_ARRAY_EX2(state: *ParseState, dest: *php.zval, check_null: bool, deref: bool, separate: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, separate);
+    if (!php.zend_parse_arg_array(state._arg, &dest, check_null, 0)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_ARRAY_OR_NULL else php.Z_EXPECTED_ARRAY;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_ARRAY_EX(state: *ParseState, dest: *php.zval, check_null: bool, separate: bool) !void {
+    return Z_PARAM_ARRAY_EX2(state, dest, check_null, separate, separate);
+}
+
+pub fn Z_PARAM_ARRAY(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_ARRAY_EX(state, dest, false, false);
+}
+
+pub fn Z_PARAM_ARRAY_OR_NULL(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_ARRAY_EX(state, dest, true, false);
+}
+
+pub fn Z_PARAM_ARRAY_OR_OBJECT_EX2(state: *ParseState, dest: *php.zval, check_null: bool, deref: bool, separate: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, separate);
+    if (!php.zend_parse_arg_array(state._arg, &dest, check_null, 1)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_ARRAY_OR_NULL else php.Z_EXPECTED_ARRAY;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_ARRAY_OR_OBJECT_EX(state: *ParseState, dest: *php.zval, check_null: bool, separate: bool) !void {
+    return Z_PARAM_ARRAY_OR_OBJECT_EX2(state, dest, check_null, separate, separate);
+}
+
+pub fn Z_PARAM_ARRAY_OR_OBJECT(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_ARRAY_OR_OBJECT_EX(state, dest, false, false);
+}
+
+pub fn Z_PARAM_ITERABLE_EX(state: *ParseState, dest: *php.zval, check_null: bool) !void {
+    Z_PARAM_PROLOGUE(state, false, false);
+    if (!php.zend_parse_arg_iterable(state._arg, &dest, check_null)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_ITERABLE_OR_NULL else php.Z_EXPECTED_ITERABLE;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_ITERABLE(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_ITERABLE_EX(state, dest, false);
+}
+
+pub fn Z_PARAM_ITERABLE_OR_NULL(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_ITERABLE_EX(state, dest, true);
+}
+
+pub fn Z_PARAM_DOUBLE(state: *ParseState, dest: *f64) !void {
+    return Z_PARAM_DOUBLE_EX(state, dest, null, false, false);
+}
+
+pub fn Z_PARAM_DOUBLE_OR_NULL(state: *ParseState, dest: *f64, is_null: *bool) !void {
+    return Z_PARAM_DOUBLE_EX(state, dest, is_null, true, false);
+}
+
+pub fn Z_PARAM_OBJECT_EX(state: *ParseState, dest: *php.zval, check_null: bool, deref: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, false);
+    if (!php.zend_parse_arg_object(state._arg, &dest, null, check_null)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_OBJECT_OR_NULL else php.Z_EXPECTED_OBJECT;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_OBJECT(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_OBJECT_EX(state, dest, false, false);
+}
+
+pub fn Z_PARAM_OBJECT_OR_NULL(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_OBJECT_EX(state, dest, true, false);
+}
+
+pub fn Z_PARAM_RESOURCE_EX(state: *ParseState, dest: *php.zval, check_null: bool, deref: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, false);
+    if (!php.zend_parse_arg_resource(state._arg, &dest, check_null)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_RESOURCE_OR_NULL else php.Z_EXPECTED_RESOURCE;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_RESOURCE(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_RESOURCE_EX(state, dest, false, false);
+}
+
+pub fn Z_PARAM_RESOURCE_OR_NULL(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_RESOURCE_EX(state, dest, true, false);
+}
+
+pub fn Z_PARAM_PATH_EX(state: *ParseState, dest: *[*c]u8, dest_len: *usize, check_null: bool, deref: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, false);
+    if (!php.zend_parse_arg_path(state._arg, &dest, &dest_len, check_null, state._i)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_PATH_OR_NULL else php.Z_EXPECTED_PATH;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_PATH(state: *ParseState, dest: *[*c]u8, dest_len: *usize) !void {
+    return Z_PARAM_PATH_EX(state, dest, dest_len, false, false);
+}
+
+pub fn Z_PARAM_PATH_OR_NULL(state: *ParseState, dest: *[*c]u8, dest_len: *usize) !void {
+    return Z_PARAM_PATH_EX(state, dest, dest_len, true, false);
+}
+pub fn Z_PARAM_OBJ_OR_CLASS_NAME_EX(state: *ParseState, dest: *php.zval, allow_null: bool) !void {
+    Z_PARAM_PROLOGUE(state, false, false);
+    if (!php.zend_parse_arg_obj_or_class_name(state._arg, &dest, allow_null)) {
+        state._expected_type = if (allow_null) php.Z_EXPECTED_OBJECT_OR_CLASS_NAME_OR_NULL else php.Z_EXPECTED_OBJECT_OR_CLASS_NAME;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
+
+pub fn Z_PARAM_OBJ_OR_CLASS_NAME(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_OBJ_OR_CLASS_NAME_EX(state, dest, false);
+}
+
+pub fn Z_PARAM_OBJ_OR_CLASS_NAME_OR_NULL(state: *ParseState, dest: *php.zval) !void {
+    return Z_PARAM_OBJ_OR_CLASS_NAME_EX(state, dest, true);
+}
+
+pub fn Z_PARAM_DOUBLE_EX(state: *ParseState, dest: *f64, is_null: *bool, check_null: bool, deref: bool) !void {
+    Z_PARAM_PROLOGUE(state, deref, false);
+    if (!php.zend_parse_arg_double(state._arg, &dest, &is_null, check_null, state._i)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_DOUBLE_OR_NULL else php.Z_EXPECTED_DOUBLE;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return error.WrongArg;
+    }
+}
