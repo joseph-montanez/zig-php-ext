@@ -7,6 +7,13 @@ function print_timing($start_time, $label)
     echo $label . ": " . $duration . " seconds\n";
 }
 
+function print_memory_usage($start_memory, $label)
+{
+    $end_memory = memory_get_usage();
+    $memory_diff = $end_memory - $start_memory;
+    echo $label . ": " . $memory_diff . " bytes\n";
+}
+
 function strrev2($string)
 {
     $reversed = "";
@@ -19,8 +26,10 @@ function strrev2($string)
     return $reversed;
 }
 
+$start_memory = memory_get_usage();
 $t = microtime(true);
 for ($i = 0; $i < 1000000000; $i++) {
     $c = strrev2("Hello World");
 }
-print_timing($t, "PHP strrev Function Time");
+print_timing($t, "Pure PHP Function Time");
+print_memory_usage($start_memory, "Memory Usage Difference");

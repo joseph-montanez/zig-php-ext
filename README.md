@@ -39,18 +39,18 @@ If not, and okay with non-thread safety version:
 
 I've not bothered to optimized any code so this is just an out of the box experience.
 
-### PHP 8.3.12 Release NTS macOS aarch64 - M1 Mac Mini
+### PHP 8.3.12 Release NTS
 
 1,000,000,000 (One Billion) iterations of a string reverse
 
-| Version           |   Time (seconds) |   Memory Usage (MB) |   Speed Difference (%) |
-|:------------------|-----------------:|--------------------:|-----------------------:|
-| C 03 Optimization |          23.9626 |                 2.5 |                0       |
-| C 02 Optimization |          24.2401 |                 3.6 |              1% slower |
-| Zig ReleaseFast   |          24.5845 |                 2.9 |              2% slower |
-| PHP’s strrev      |          26.6163 |                 3.5 |            11% slower  |
-| Zig ReleaseSafe   |          29.835  |                 4   |            24% slower  |
-| Pure PHP          |         280.365  |                 3.8 |        1070% slower    |
+| Version           | Time (secs) (Linux x64) | Time (secs) (macOS aarch64) |   Memory Usage (MB) (macOS) | Time (%) (macOS) | Memory Usage (MB) (Linux)   | Time (%) (Linux) |
+|:------------------|------------------------:|----------------------------:|----------------------------:|:-----------------|:----------------------------|:-----------------|
+| C 03 Optimization |                 14.1434 |                     23.9626 |                         2.5 | 0%               | N/A                         | 18.35% slower    |
+| C 02 Optimization |                 14.6329 |                     24.2401 |                         3.6 | 1% slower        | N/A                         | 22.45% slower    |
+| Zig ReleaseFast   |                  12.363 |                     24.5845 |                         2.9 | 2% slower        | N/A                         | 3.46% slower     |
+| PHP’s strrev      |                   11.95 |                     26.6163 |                         3.5 | 11% slower       | N/A                         | 0% slower        |
+| Zig ReleaseSafe   |                 15.7793 |                      29.835 |                         4   | 24% slower       | N/A                         | 32.04% slower    |
+| Pure PHP          |                 145.905 |                     280.365 |                         3.8 | 1070% slower     | N/A                         | 1120.96% slower  |
 
 
 ### Differences from C API
