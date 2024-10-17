@@ -77,6 +77,20 @@ If you get an error `error: opaque types have unknown size and therefore cannot 
     ./build.sh --zig /path/to/zig --action clean --action configure --action build --action run
     ./build.sh --zig /path/to/zig --action build --action run
 
+## PHP Extension Files For Development
+
+The following are a list of files you will want to start with. This will help you get starts with writing your own extension in Zig.
+
+`ext.zig` - The root Zig code to register your PHP functions and class written in Zig.
+
+`vector3.zig` - Example of how to write a PHP class in Zig.
+
+`php-zig.patch` - Custom C patches to `php-src` to help Zig's C-Translate system.
+
+`wrapper.c/h` - Work arounds for C-Translate issues that cannot be patched out.
+
+`zend.zig` - C Macro's Translation, warning its a work in progress.
+
 
 ## Performance
 
