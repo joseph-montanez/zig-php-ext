@@ -75,7 +75,7 @@ build_extension() {
         find . -type f -name "*.zig" -exec sed -i '' 's|pub const struct_zend_atomic_bool_s = opaque {};|pub const struct_zend_atomic_bool_s = extern struct { value: @import("std").atomic.Value(bool), };|' {} +
     else
         # Linux
-        find . -type f -name "*.zig" -exec sed -i 's|pub const struct_zend_atomic_bool_s = opaque {};|pub const struct_zend_atomic_bool_s = extern struct { value: @import("std").atomic.Value(bool), };|' {} +
+        find . -type f -name "*.zig" -print0 | xargs -0 sed -i 's#pub const struct_zend_atomic_bool_s = opaque {};#pub const struct_zend_atomic_bool_s = extern struct { value: @import("std").atomic.Value(bool), };#'
     fi
     
     # Build Zig library
