@@ -69,6 +69,15 @@ build_extension() {
     # echo "clang -c wrapper.c -o wrapper.o $INCLUDE_PATHS $SDK_INCLUDE -fPIC $CLANG_OPTS\n"
     clang -c wrapper.c -o wrapper.o $INCLUDE_PATHS $SDK_INCLUDE -fPIC $CLANG_OPTS
 
+    ## String replace
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        find . -type f -name "*.zig" -exec sed -i '' 's|pub const struct_zend_atomic_bool_s = opaque {};|pub const struct_zend_atomic_bool_s = extern struct { value: @import("std").atomic.Value(bool), };|' {} +
+    else
+        # Linux
+        find . -type f -name "*.zig" -exec sed -i 's|pub const struct_zend_atomic_bool_s = opaque {};|pub const struct_zend_atomic_bool_s = extern struct { value: @import("std").atomic.Value(bool), };|' {} +
+    fi
+    
     # Build Zig library
     $ZIG_BINARY build-lib ext.zig \
         -freference-trace \

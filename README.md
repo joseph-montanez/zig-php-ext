@@ -19,7 +19,7 @@ pub const struct_zend_atomic_bool_s = opaque {};
                                       ^~~~~~~~~
 ```
 
-For the time being when you run into this you need to go into the `cimport.zig` file then replace:
+For the time being when you run into this you need to go into the `cimport.zig` file then replace. I do try to auto patch this, but you first build will fail.
 
 ```zig
 pub const struct_zend_atomic_bool_s = opaque {};
@@ -35,7 +35,7 @@ pub const struct_zend_atomic_bool_s = extern struct {
 pub const zend_atomic_bool = struct_zend_atomic_bool_s;
 ```
 
-While I already provide patches for the C code, there is no work around for this at this time other than manual patching since the cimport.zig changes depeneding on flags and platforms.
+While I already provide patches for the C code, there is no work around for this at this time other than manual patching since the cimport.zig changes depeneding on flags and platforms. I also provide an auto-fix when you build but basically you have to twice each time you change you code.
 
 ### Debian/Ubuntu
 
@@ -59,17 +59,24 @@ TODO...
 
 PHP has several modes, right now `zig build` uses ZTS/NON-ZTS/DEBUG/RELEASE for thread-safety/non-thread-safety. If you need a thread-safety version you can use:
 
-    ./build.sh --zig /path/to/zig --zts --clean  --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --zts --action clean  --action configure --action build --action run
     # Release ZTS version
-    ./build.sh --zig /path/to/zig --zts --release --clean  --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --zts --release --action clean  --action configure --action build --action run
 
 If not, and okay with non-thread safety version:
 
-    ./build.sh --zig /path/to/zig --clean --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --action clean --action configure --action build --action run
     # Release NTS version
     ./build.sh --zig /path/to/zig  --release --clean --action configure --action build --action run
 
 `build.zig` is a work in progress and does not function right now.
+
+
+If you get an error `error: opaque types have unknown size and therefore cannot be directly embedded in structs` just build a second time without clean/configure:
+
+    ./build.sh --zig /path/to/zig --action clean --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --action build --action run
+
 
 ## Performance
 

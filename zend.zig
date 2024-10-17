@@ -27,6 +27,26 @@ pub usingnamespace string;
 pub usingnamespace api;
 pub usingnamespace hash;
 
+// const PhpAllocator = struct {
+//     pub fn alloc(_: *PhpAllocator, len: usize) !*u8 {
+//         const filename = "ext.zig"; // Set this to the current filename
+//         const lineno: u32 = 25; // Set this to the current line number
+
+//         const ptr = php._emalloc(len, filename, lineno, filename, lineno);
+//         if (ptr == null) {
+//             return error.OutOfMemory;
+//         }
+//         return @ptrCast(ptr);
+//     }
+
+//     pub fn free(_: *PhpAllocator, ptr: *u8) void {
+//         const filename = "ext.zig"; // Set this to the current filename
+//         const lineno: u32 = 36; // Set this to the current line number
+
+//         php._efree(ptr, filename, lineno, filename, lineno);
+//     }
+// };
+
 pub const ExecutorGlobalField = enum {
     UNINITIALIZED_ZVAL,
     ERROR_ZVAL,
@@ -36,7 +56,7 @@ pub const ExecutorGlobalField = enum {
     VM_STACK_TOP,
     VM_STACK_END,
     VM_STACK,
-    // Add more fields as needed
+    VM_INTERRUPT,
 };
 
 pub fn EG(comptime field: ExecutorGlobalField) switch (field) {
@@ -48,6 +68,7 @@ pub fn EG(comptime field: ExecutorGlobalField) switch (field) {
     .VM_STACK_TOP => *[*c]php.zval,
     .VM_STACK_END => *[*c]php.zval,
     .VM_STACK => *php.zend_vm_stack,
+    .VM_INTERRUPT => *php.zend_atomic_bool,
 } {
     if (@hasDecl(config, "ZTS")) {
         const tsrm_ls = php.tsrm_get_ls_cache() orelse {
@@ -65,6 +86,7 @@ pub fn EG(comptime field: ExecutorGlobalField) switch (field) {
             .VM_STACK_TOP => &eg_ptr.vm_stack_top,
             .VM_STACK_END => &eg_ptr.vm_stack_end,
             .VM_STACK => &eg_ptr.vm_stack,
+            .VM_INTERRUPT => &eg_ptr.vm_interrupt,
         };
     } else {
         const executor_globals_ptr: *php.zend_executor_globals = php.get_executor_globals() orelse {
@@ -79,6 +101,7 @@ pub fn EG(comptime field: ExecutorGlobalField) switch (field) {
             .VM_STACK_TOP => &executor_globals_ptr.vm_stack_top,
             .VM_STACK_END => &executor_globals_ptr.vm_stack_end,
             .VM_STACK => &executor_globals_ptr.vm_stack,
+            .VM_INTERRUPT => &executor_globals_ptr.vm_interrupt,
         };
     }
 }

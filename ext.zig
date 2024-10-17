@@ -17,28 +17,6 @@ const php = @cImport({
 const zend = @import("zend.zig");
 const vector3 = @import("vector3.zig");
 
-usingnamespace zend;
-
-// const PhpAllocator = struct {
-//     pub fn alloc(_: *PhpAllocator, len: usize) !*u8 {
-//         const filename = "ext.zig"; // Set this to the current filename
-//         const lineno: u32 = 25; // Set this to the current line number
-
-//         const ptr = php._emalloc(len, filename, lineno, filename, lineno);
-//         if (ptr == null) {
-//             return error.OutOfMemory;
-//         }
-//         return @ptrCast(ptr);
-//     }
-
-//     pub fn free(_: *PhpAllocator, ptr: *u8) void {
-//         const filename = "ext.zig"; // Set this to the current filename
-//         const lineno: u32 = 36; // Set this to the current line number
-
-//         php._efree(ptr, filename, lineno, filename, lineno);
-//     }
-// };
-
 fn format_string(name: []const u8) ![]const u8 {
     return try std.fmt.allocPrint(allocator, "Hello {s}", .{name});
 }
@@ -54,9 +32,8 @@ fn zif_test1(execute_data: [*c]php.zend_execute_data, _: [*c]php.zval) callconv(
 
 var arginfo_test2: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(0, false, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
 fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval) callconv(.C) void {
-    var buffer: [6]u8 = [_]u8{ 'W', 'o', 'r', 'l', 'd', 0 };
-    var var_str: [*c]u8 = &buffer[0];
-    var var_len: usize = 5;
+    var var_str: [*c]u8 = undefined;
+    var var_len: usize = 0;
     var retval: ?*php.zend_string = null;
 
     var paramState = zend.ZEND_PARSE_PARAMETERS_START(0, 1, execute_data);
@@ -72,34 +49,23 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
     retval = php.zend_string_init_wrapper(result.ptr, result.len, 0);
 
     if (retval) |nonOptionalRetval| {
-        std.debug.print("String copied. Attempting to return...\n", .{});
-
-        // Try to return the string
         zend.RETURN_STR(return_value, nonOptionalRetval);
-
-        std.debug.print("RETURN_STR completed\n", .{});
     } else {
-        std.debug.print("How did we get here?!\n", .{});
-        // Handle the case where retval is null
         return;
     }
 }
 
 var arginfo_text_reverse: [2]php.zend_internal_arg_info = [_]php.zend_internal_arg_info{ zend.ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX2(1, false, php.IS_STRING, false, false), zend.ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(false, "str", php.IS_STRING, false, "\"\"") };
 pub fn zif_text_reverse(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval) callconv(.C) void {
-    var var_str: [*c]u8 = null;
-    var var_len: usize = 0;
+    var var_str: [*c]u8 = @ptrCast(allocator.alloc(u8, 256) catch {
+        return;
+    });
+    var var_len: usize = 256;
     var retval: ?*php.zend_string = null;
 
     var paramState = zend.ZEND_PARSE_PARAMETERS_START(1, 1, execute_data);
-    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch |err| {
-        std.debug.print("`str` parameter error: {}\n", .{err});
-        return;
-    };
-    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch |err| {
-        std.debug.print("end parameter error: {}\n", .{err});
-        return;
-    };
+    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch {};
+    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch {};
 
     // Handle empty string case
     if (var_len == 0) {
@@ -120,7 +86,6 @@ pub fn zif_text_reverse(execute_data: [*c]php.zend_execute_data, return_value: [
 
         zend.RETURN_STR(return_value, nonNullRetval);
     } else {
-        std.debug.print("Failed to allocate memory for zend_string\n", .{});
         zend.RETURN_EMPTY_STRING(return_value);
     }
 }

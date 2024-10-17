@@ -162,8 +162,6 @@ pub fn php_raylib_vector3_get_gc(object: [*c]php.zend_object, gc_data: [*c][*c]p
 }
 
 pub fn php_raylib_vector3_get_properties(object: [*c]php.zend_object) callconv(.C) *php.HashTable {
-    std.debug.print("Vector3.php_raylib_vector3_get_properties called\n", .{});
-
     const obj: *php_raylib_vector3_object = php_raylib_vector3_fetch_object(object);
     const props: *php.HashTable = php.zend_std_get_properties(object);
     const hnd: ?*raylib_vector3_prop_handler = null;
@@ -201,13 +199,10 @@ pub fn php_raylib_vector3_get_properties(object: [*c]php.zend_object) callconv(.
 }
 
 pub fn php_raylib_vector3_free_prop_handler(el: [*c]php.zval) callconv(.C) void {
-    std.debug.print("Vector3.php_raylib_vector3_free_prop_handler called\n", .{});
     php.pefree(zend.Z_PTR_P(el), true);
 }
 
 pub fn php_raylib_vector3_register_prop_handler(prop_handler: *php.HashTable, name: [*c]const u8, read_float_func: ?raylib_vector3_read_float_t, write_float_func: ?raylib_vector3_write_float_t) void {
-    std.debug.print("Vector3.php_raylib_vector3_register_prop_handler called\n", .{});
-
     var hnd = raylib_vector3_prop_handler{
         .read_float_func = if (read_float_func) |f| &f else null,
         .write_float_func = if (write_float_func) |f| &f else null,
@@ -221,8 +216,6 @@ pub fn php_raylib_vector3_register_prop_handler(prop_handler: *php.HashTable, na
 }
 
 pub fn php_raylib_vector3_property_reader(obj: *php_raylib_vector3_object, hnd: *raylib_vector3_prop_handler, rv: *php.zval) *php.zval {
-    std.debug.print("Vector3.php_raylib_vector3_property_reader called\n", .{});
-
     if (hnd.read_float_func) |read_float_func| {
         _ = read_float_func(obj, rv);
     }
@@ -230,19 +223,14 @@ pub fn php_raylib_vector3_property_reader(obj: *php_raylib_vector3_object, hnd: 
 }
 
 pub fn php_raylib_vector3_free_storage(object: [*c]php.zend_object) callconv(.C) void {
-    std.debug.print("Vector3.php_raylib_vector3_free_storage called\n", .{});
-
     const intern: *php_raylib_vector3_object = php_raylib_vector3_fetch_object(object);
     php.zend_object_std_dtor(&intern.std);
 }
 
 pub fn php_raylib_vector3_new_ex(ce: *php.zend_class_entry, orig: ?*php.zend_object) !*php.zend_object {
-    std.debug.print("Vector3.php_raylib_vector3_new_ex called\n", .{});
-
     const raw_intern: ?*anyopaque = php.zend_object_alloc(@sizeOf(php_raylib_vector3_object), ce);
     if (raw_intern == null) {
         // Handle error, maybe return null or panic depending on your application logic
-        std.debug.print("Vector3.php_raylib_vector3_new_ex allocation failed\n", .{});
         return error.AllocationFailed;
     }
 
@@ -275,15 +263,12 @@ pub fn php_raylib_vector3_new_ex(ce: *php.zend_class_entry, orig: ?*php.zend_obj
 }
 
 pub fn php_raylib_vector3_new(class_type: [*c]php.zend_class_entry) callconv(.C) [*c]php.zend_object {
-    std.debug.print("Vector3.php_raylib_vector3_new called\n", .{});
     return php_raylib_vector3_new_ex(class_type, null) catch {
         @panic("Failed to create new Vector3 object");
     };
 }
 
 pub fn php_raylib_vector3_clone(old_object: [*c]php.zend_object) callconv(.C) *php.zend_object {
-    std.debug.print("Vector3.php_raylib_vector3_clone called\n", .{});
-
     const old_object_ref: *php.zend_object = @ptrCast(old_object);
     const old_ce = old_object_ref.ce;
 
@@ -299,7 +284,6 @@ pub fn php_raylib_vector3_clone(old_object: [*c]php.zend_object) callconv(.C) *p
 }
 
 pub fn php_raylib_vector3_fetch_object(obj: *php.zend_object) *php_raylib_vector3_object {
-    std.debug.print("Vector3.php_raylib_vector3_fetch_object called\n", .{});
     const offset: comptime_int = @offsetOf(php_raylib_vector3_object, "std");
     const ptr: *u8 = @ptrFromInt(@intFromPtr(obj) - offset);
     return @alignCast(@ptrCast(ptr));
@@ -312,8 +296,6 @@ var arginfo_vector3__construct: [4]php.zend_internal_arg_info = .{
     zend.ZEND_ARG_TYPE_MASK(false, "z", php.MAY_BE_DOUBLE | php.MAY_BE_NULL, "0"),
 };
 pub fn vector3__construct(execute_data: ?*php.zend_execute_data, _: ?*php.zval) callconv(.C) void {
-    std.debug.print("Vector3.vector3__construct called\n", .{});
-
     var x: f64 = 0.0;
     var x_is_null: bool = true;
 
@@ -336,10 +318,6 @@ pub fn vector3__construct(execute_data: ?*php.zend_execute_data, _: ?*php.zval) 
     if (y_is_null) y = 0.0;
     if (z_is_null) z = 0.0;
 
-    std.debug.print("Vector3.vector3__construct -> x = {d}\n", .{x});
-    std.debug.print("Vector3.vector3__construct -> y = {d}\n", .{y});
-    std.debug.print("Vector3.vector3__construct -> z = {d}\n", .{z});
-
     intern.vector3 = Vector3{
         .x = x,
         .y = y,
@@ -348,7 +326,6 @@ pub fn vector3__construct(execute_data: ?*php.zend_execute_data, _: ?*php.zval) 
 }
 
 fn php_raylib_vector3_get_x(obj: *php_raylib_vector3_object, retval: *php.zval) c_int {
-    std.debug.print("Vector3.php_raylib_vector3_get_x called\n", .{});
     zend.ZVAL_DOUBLE(retval, obj.vector3.x);
 
     if (php.Z_REFCOUNTED(retval)) {
@@ -359,7 +336,6 @@ fn php_raylib_vector3_get_x(obj: *php_raylib_vector3_object, retval: *php.zval) 
 }
 
 fn php_raylib_vector3_get_y(obj: *php_raylib_vector3_object, retval: *php.zval) c_int {
-    std.debug.print("Vector3.php_raylib_vector3_get_y called\n", .{});
     zend.ZVAL_DOUBLE(retval, obj.vector3.y);
 
     if (php.Z_REFCOUNTED(retval)) {
@@ -370,7 +346,6 @@ fn php_raylib_vector3_get_y(obj: *php_raylib_vector3_object, retval: *php.zval) 
 }
 
 fn php_raylib_vector3_get_z(obj: *php_raylib_vector3_object, retval: *php.zval) c_int {
-    std.debug.print("Vector3.php_raylib_vector3_get_z called\n", .{});
     zend.ZVAL_DOUBLE(retval, obj.vector3.z);
 
     if (php.Z_REFCOUNTED(retval)) {
@@ -381,7 +356,6 @@ fn php_raylib_vector3_get_z(obj: *php_raylib_vector3_object, retval: *php.zval) 
 }
 
 fn php_raylib_vector3_set_x(obj: *php_raylib_vector3_object, newval: *php.zval) c_int {
-    std.debug.print("Vector3.php_raylib_vector3_set_x called\n", .{});
     const ret = php.SUCCESS;
 
     if (zend.Z_TYPE_P(newval).* == php.IS_NULL) {
@@ -390,7 +364,6 @@ fn php_raylib_vector3_set_x(obj: *php_raylib_vector3_object, newval: *php.zval) 
     }
 
     obj.vector3.x = php.zval_get_double(newval);
-    std.debug.print("Vector3.x = {d}\n", .{obj.vector3.x});
 
     return ret;
 }
@@ -404,7 +377,6 @@ fn php_raylib_vector3_set_y(obj: *php_raylib_vector3_object, newval: *php.zval) 
     }
 
     obj.vector3.y = php.zval_get_double(newval);
-    std.debug.print("Vector3.x = {d}\n", .{obj.vector3.y});
 
     return ret;
 }
@@ -418,7 +390,6 @@ fn php_raylib_vector3_set_z(obj: *php_raylib_vector3_object, newval: *php.zval) 
     }
 
     obj.vector3.z = php.zval_get_double(newval);
-    std.debug.print("Vector3.x = {d}\n", .{obj.vector3.z});
 
     return ret;
 }
@@ -429,7 +400,6 @@ var php_raylib_vector3_methods = [_]php.zend_function_entry{
 };
 
 pub fn php_raylib_vector3_startup(_: c_int, _: c_int) void {
-    std.debug.print("Vector3.php_raylib_vector3_startup called\n", .{});
     var ce: php.zend_class_entry = undefined;
 
     // Copy standard object handlers
@@ -456,10 +426,8 @@ pub fn php_raylib_vector3_startup(_: c_int, _: c_int) void {
     zend.INIT_NS_CLASS_ENTRY(&ce, "raylib", "Vector3", @ptrCast(&php_raylib_vector3_methods));
     php_raylib_vector3_ce = php.zend_register_internal_class(&ce);
     if (php_raylib_vector3_ce) |raw_ce| {
-        std.debug.print("Vector3.php_raylib_vector3_startup create_object assigned\n", .{});
         raw_ce.unnamed_1.create_object = php_raylib_vector3_new;
     }
-    std.debug.print("Vector3.php_raylib_vector3_startup inialized {d} functions registered\n", .{php_raylib_vector3_ce.?.function_table.nNumUsed});
 
     // Initialize property handlers
     php.zend_hash_init(&php_raylib_vector3_prop_handlers, 0, null, php_raylib_vector3_free_prop_handler, true);

@@ -1,7 +1,10 @@
 // wrapper.c
 #include <stdarg.h>
-#include "php.h"
+
+#include "php_config.h"
 #include "zend_API.h"
+#include "php.h"
+#include "ext/standard/info.h"
 
 zend_string* zend_string_init_wrapper(const char *str, size_t len, int persistent);
 zend_execute_data* get_execute_data();
@@ -18,4 +21,3 @@ size_t get_compiler_globals_offset();
 size_t get_executor_globals_offset();
 size_t get_executor_globals_offset();
 #endif
-
