@@ -57,14 +57,19 @@ TODO...
 
 ## 2. Building Zig Extension
 
-PHP has several modes, right now `zig build` only uses ZTS/NON-ZTS for thread-safety. If you need a thread-safety version you can use:
+PHP has several modes, right now `zig build` uses ZTS/NON-ZTS/DEBUG/RELEASE for thread-safety/non-thread-safety. If you need a thread-safety version you can use:
 
-    ./build.sh --zig /path/to/zig --zts --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --zts --clean  --action configure --action build --action run
+    # Release ZTS version
+    ./build.sh --zig /path/to/zig --zts --release --clean  --action configure --action build --action run
 
 If not, and okay with non-thread safety version:
 
-    ./build.sh --zig /path/to/zig --action configure --action build --action run
+    ./build.sh --zig /path/to/zig --clean --action configure --action build --action run
+    # Release NTS version
+    ./build.sh --zig /path/to/zig  --release --clean --action configure --action build --action run
 
+`build.zig` is a work in progress and does not function right now.
 
 ## Performance
 
