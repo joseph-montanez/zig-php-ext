@@ -42,5 +42,6 @@ INCLUDE_PATHS=$(${PHP_SDK}php-config --includes)
 LIBS=$(${PHP_SDK}php-config --libs)
 
 # Expand the macros in the provided file using clang
+echo "clang -E $INCLUDE_PATHS $FILE_TO_EXPAND > out.c"
 clang -E $INCLUDE_PATHS $FILE_TO_EXPAND > out.c
 $ZIG_BINARY translate-c $INCLUDE_PATHS $FILE_TO_EXPAND > out.zig

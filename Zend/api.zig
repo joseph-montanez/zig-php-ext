@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const allocator = std.heap.page_allocator;
+
 const php = @cImport({
     @cInclude("php_config.h");
     @cInclude("zend_API.h");
@@ -65,6 +67,25 @@ pub const ParseState = struct {
     }
 };
 
+fn EX(execute_data: ?*php.zend_execute_data, element: [*c]u8) *php.zval {
+    if (execute_data) |e| {
+        return @field(e.*, element);
+    }
+    return null;
+}
+
+fn ZEND_THIS(execute_data: ?*php.zend_execute_data) *php.zval {
+    return EX(execute_data, "This");
+}
+
+fn getThis(execute_data: ?*php.zend_execute_data) ?*php.zval {
+    const zthis = ZEND_THIS(execute_data);
+    if (zthis != null and zthis.Z_TYPE_P == php.IS_OBJECT) {
+        return zthis;
+    }
+    return null;
+}
+
 pub fn Z_PARAM_OPTIONAL(state: *ParseState) void {
     state._optional = true;
 }
@@ -87,7 +108,14 @@ pub fn Z_PARAM_STRING_EX(
     deref: bool,
 ) bool {
     Z_PARAM_PROLOGUE(state, deref, false);
-    return php.zend_parse_arg_string(state._arg, dest, dest_len, check_null, state._i);
+
+    if (!php.zend_parse_arg_string(state._arg, dest, dest_len, check_null, state._i)) {
+        state._expected_type = if (check_null) php.Z_EXPECTED_STRING_OR_NULL else php.Z_EXPECTED_STRING;
+        state._error_code = php.ZPP_ERROR_WRONG_ARG;
+        return false;
+    }
+
+    return true;
 }
 
 pub fn Z_PARAM_PROLOGUE(
@@ -401,6 +429,171 @@ pub fn ZEND_FE_END() php.zend_function_entry {
     };
 }
 
+pub fn PHP_FE_END() php.zend_function_entry {
+    return ZEND_FE_END();
+}
+
+pub fn ZEND_FN(handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void) fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void {
+    return handler;
+}
+
+pub fn ZEND_MN(handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void) fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void {
+    return handler;
+}
+
+pub fn ZEND_NAMED_FUNCTION(handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void) void {
+    handler(null, null);
+}
+
+pub fn ZEND_FUNCTION(handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void) void {
+    ZEND_NAMED_FUNCTION(handler);
+}
+
+pub fn ZEND_METHOD(name: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void) void {
+    ZEND_NAMED_FUNCTION(name);
+}
+
+pub fn ZEND_RAW_FENTRY(
+    zend_name: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    num_args: u32,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_FENTRY(zend_name, handler, arg_info, num_args, flags);
+}
+
+pub fn ZEND_RAW_NAMED_FE(
+    zend_name: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(zend_name, handler, arg_info, 0);
+}
+
+pub fn ZEND_NAMED_FE(
+    zend_name: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_NAMED_FE(zend_name, handler, arg_info);
+}
+
+pub fn ZEND_DEP_FE(
+    name: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(name, handler, arg_info, php.ZEND_ACC_DEPRECATED);
+}
+
+pub fn ZEND_FALIAS(
+    alias: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(alias, handler, arg_info, 0);
+}
+
+pub fn ZEND_DEP_FALIAS(
+    alias: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(alias, handler, arg_info, php.ZEND_ACC_DEPRECATED);
+}
+
+pub fn ZEND_NAMED_ME(
+    zend_name: [*c]const u8,
+    name: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_FENTRY(zend_name, name, arg_info, flags);
+}
+
+pub fn ZEND_ME(
+    classname: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    num_args: u32,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(classname, handler, arg_info, num_args, flags);
+}
+
+pub fn PHP_ME(
+    classname: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    num_args: u32,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_ME(classname, handler, arg_info, num_args, flags);
+}
+
+pub fn ZEND_DEP_ME(
+    classname: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(classname, handler, arg_info, flags | php.ZEND_ACC_DEPRECATED);
+}
+
+pub fn ZEND_ABSTRACT_ME(
+    classname: [*c]const u8,
+    arg_info: ?[*]php.zend_internal_arg_info,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(classname, null, arg_info, php.ZEND_ACC_PUBLIC | php.ZEND_ACC_ABSTRACT);
+}
+
+pub fn ZEND_ABSTRACT_ME_WITH_FLAGS(
+    classname: [*c]const u8,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(classname, null, arg_info, flags);
+}
+
+pub fn ZEND_MALIAS(
+    alias: [*c]const u8,
+    handler: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(alias, handler, arg_info, flags);
+}
+
+pub fn ZEND_ME_MAPPING(
+    name: [*c]const u8,
+    func_name: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(name, func_name, arg_info, flags);
+}
+
+pub fn ZEND_NS_FENTRY(
+    ns: [*c]const u8,
+    zend_name: [*c]const u8,
+    name: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(ns ++ "::" ++ zend_name, name, arg_info, flags);
+}
+
+pub fn ZEND_NS_RAW_FENTRY(
+    ns: [*c]const u8,
+    zend_name: [*c]const u8,
+    name: fn (execute_data: ?*php.zend_execute_data, return_value: ?*php.zval) callconv(.C) void,
+    arg_info: ?[*]php.zend_internal_arg_info,
+    flags: u32,
+) php.zend_function_entry {
+    return ZEND_RAW_FENTRY(ns ++ "::" ++ zend_name, name, arg_info, flags);
+}
+
 pub fn Z_PARAM_GET_PREV_ZVAL(state: *ParseState, dest: *?php.zval) void {
     _ = php.zend_parse_arg_zval_deref(state._arg, &dest, 0);
 }
@@ -537,9 +730,40 @@ pub fn Z_PARAM_OBJ_OR_CLASS_NAME_OR_NULL(state: *ParseState, dest: *php.zval) !v
 
 pub fn Z_PARAM_DOUBLE_EX(state: *ParseState, dest: *f64, is_null: *bool, check_null: bool, deref: bool) !void {
     Z_PARAM_PROLOGUE(state, deref, false);
-    if (!php.zend_parse_arg_double(state._arg, &dest, &is_null, check_null, state._i)) {
+    if (!php.zend_parse_arg_double(state._arg, @as([*c]f64, @ptrCast(dest)), is_null, check_null, state._i)) {
         state._expected_type = if (check_null) php.Z_EXPECTED_DOUBLE_OR_NULL else php.Z_EXPECTED_DOUBLE;
         state._error_code = php.ZPP_ERROR_WRONG_ARG;
         return error.WrongArg;
     }
+}
+
+pub fn ZEND_NS_NAME(ns: []const u8, name: []const u8) []u8 {
+    var result = allocator.alloc(u8, ns.len + 1 + name.len) catch {
+        return "";
+    };
+    @memcpy(result[0..ns.len], ns);
+    result[ns.len] = '\\';
+    @memcpy(result[ns.len + 1 ..], name);
+    return result;
+}
+
+pub fn INIT_CLASS_ENTRY_EX(class_container: *php.zend_class_entry, class_name: []const u8, class_name_len: usize, functions: ?*php.zend_function_entry) void {
+    @memset(std.mem.asBytes(class_container), 0);
+    if (php.zend_string_init_interned) |init_interned| {
+        class_container.name = init_interned(class_name.ptr, class_name_len, true);
+    } else {
+        @panic("zend_string_init_interned is not available");
+    }
+    class_container.default_object_handlers = &php.std_object_handlers;
+    class_container.info.internal.builtin_functions = functions;
+}
+
+pub fn INIT_CLASS_ENTRY(class_container: *php.zend_class_entry, class_name: []const u8, functions: ?*php.zend_function_entry) void {
+    INIT_CLASS_ENTRY_EX(class_container, class_name, class_name.len, functions);
+}
+
+pub fn INIT_NS_CLASS_ENTRY(class_container: *php.zend_class_entry, ns: []const u8, class_name: []const u8, functions: ?*php.zend_function_entry) void {
+    const full_class_name = ZEND_NS_NAME(ns, class_name);
+    defer allocator.free(full_class_name);
+    INIT_CLASS_ENTRY(class_container, full_class_name, functions);
 }

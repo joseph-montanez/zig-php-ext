@@ -66,6 +66,7 @@ build_extension() {
     fi
 
     # Compile wrapper (use optimization flag based on build type)
+    # echo "clang -c wrapper.c -o wrapper.o $INCLUDE_PATHS $SDK_INCLUDE -fPIC $CLANG_OPTS\n"
     clang -c wrapper.c -o wrapper.o $INCLUDE_PATHS $SDK_INCLUDE -fPIC $CLANG_OPTS
 
     # Build Zig library
@@ -87,7 +88,8 @@ build_extension() {
 # Function to run the extension test
 run_extension() {
     echo "Running the PHP extension..."
-    ${PHP_SDK}php -d extension=./libext.${LIB_EXTENSION} -r "echo test1(), 'going to test2...', PHP_EOL, '\"', test2('Zig'), '\"', PHP_EOL, text_reverse('Hello World');"
+    # ${PHP_SDK}php -d extension=./libext.${LIB_EXTENSION} -r "echo test1(), 'going to test2...', PHP_EOL, '\"', test2('Zig'), '\"', PHP_EOL, text_reverse('Hello World'), PHP_EOL; var_dump(new raylib\\Vector3(1,2,3));"
+    ${PHP_SDK}php -d extension=./libext.${LIB_EXTENSION} vector3.php
 }
 
 # Function to clean the build artifacts
@@ -96,7 +98,7 @@ clean_extension() {
     rm -f libext.*
     rm -f libext.*.*
     rm -f wrapper.o
-    rm -f config.h config.nice config.status config.h.* config.log autom4te.cache configure configure.ac configure~ libtool Makefile Makefile.* run-tests.php
+    rm -f config.h config.nice config.status config.h.* config.log configure configure.ac configure~ libtool Makefile Makefile.* run-tests.php
     rm -rf modules include autom4te.cache
     rm -rf .zig-cache
     rm -rf ~/.cache/zig

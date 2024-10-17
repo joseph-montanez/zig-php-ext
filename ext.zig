@@ -15,6 +15,7 @@ const php = @cImport({
 });
 
 const zend = @import("zend.zig");
+const vector3 = @import("vector3.zig");
 
 usingnamespace zend;
 
@@ -60,23 +61,15 @@ fn zif_test2(execute_data: [*c]php.zend_execute_data, return_value: [*c]php.zval
 
     var paramState = zend.ZEND_PARSE_PARAMETERS_START(0, 1, execute_data);
     zend.Z_PARAM_OPTIONAL(&paramState);
-    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch |err| {
-        std.debug.print("`str` parameter error: {}\n", .{err});
-        return;
-    };
-    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch |err| {
-        std.debug.print("end parameter error: {}\n", .{err});
+    zend.Z_PARAM_STRING(&paramState, &var_str, &var_len) catch {};
+    zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch {};
+
+    var formatted_str: [100]u8 = undefined;
+    const result = std.fmt.bufPrint(&formatted_str, "Hello {s}", .{var_str}) catch {
         return;
     };
 
-    // Format the string in Zig
-    const var_str_slice: []const u8 = @as([*]const u8, var_str)[0..var_len];
-    const formatted_str = format_string(var_str_slice) catch {
-        std.debug.print("Well... this looks bad!!\n", .{});
-        return;
-    };
-
-    retval = php.zend_string_init_wrapper(formatted_str.ptr, formatted_str.len, 0);
+    retval = php.zend_string_init_wrapper(result.ptr, result.len, 0);
 
     if (retval) |nonOptionalRetval| {
         std.debug.print("String copied. Attempting to return...\n", .{});
@@ -143,7 +136,9 @@ export fn zm_info_ext(_: [*c]php.zend_module_entry) callconv(.C) void {
     // Implement this function if needed
 }
 
-export fn zm_startup_ext(_: c_int, _: c_int) callconv(.C) php.zend_result {
+export fn zm_startup_ext(module_type: c_int, module_number: c_int) callconv(.C) php.zend_result {
+    vector3.php_raylib_vector3_startup(module_type, module_number);
+
     return php.SUCCESS;
 }
 
@@ -223,7 +218,7 @@ comptime {
 
         const ext_log = "(Runtime) EXT compiled as module";
         _ = ext_log;
-        @export(&get_module, .{ .name = "get_module", .linkage = .strong });
+        @export(get_module, .{ .name = "get_module", .linkage = .strong });
     } else {
         const ext_log = "(Runtime) EXT not compiled as module";
         _ = ext_log;

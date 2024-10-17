@@ -33,15 +33,11 @@ PHP_SDK="./build/php-8.3-${PHP_ZTS_TYPE}-${PHP_BUILD_TYPE}/bin/"
 # Create a temporary LLDB command file
 LLDB_CMDS=$(mktemp)
 cat << EOF > "$LLDB_CMDS"
-settings set -- target.run-args -d "extension=./libext.${LIB_EXTENSION}" -r "echo test1(), PHP_EOL, '\"', test2('Zig'), '\"', PHP_EOL, text_reverse('Hello World');"
-breakpoint set -n dlopen --condition '(int)strcmp((char *)\$rdi, "./libext.${LIB_EXTENSION}") == 0'
-breakpoint command add
+settings set -- target.run-args -d "extension=./libext.${LIB_EXTENSION}" vector3.php
 script print("Shared library loaded. Setting additional breakpoint...")
-breakpoint set -n ZVAL_STR
-continue
-run
+break set -n php_raylib_vector3_get_properties
 EOF
-
+# break set --file vector3.zig --line 445
 # Run LLDB with the command file
 lldb -s "$LLDB_CMDS" "${PHP_SDK}php"
 

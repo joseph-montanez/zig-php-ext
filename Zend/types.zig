@@ -9,7 +9,12 @@ const php = @cImport({
 });
 
 pub inline fn zval_get_type(pz: *const php.zval) *u8 {
-    return @as(*u8, @ptrCast(&pz.u1.v.type));
+    return @as(*u8, @constCast(&pz.u1.v.type));
+}
+
+pub inline fn Z_NEXT(zval_1: anytype) *@TypeOf(zval_1.u2.next) {
+    _ = &zval_1;
+    return &zval_1.u2.next;
 }
 
 pub inline fn Z_TYPE(zval: php.zval) *u8 {
@@ -157,12 +162,12 @@ pub inline fn Z_LVAL_P(zval_p: *php.zval) c_long {
     return Z_LVAL(zval_p.*);
 }
 
-pub inline fn Z_DVAL(zval: php.zval) f64 {
-    return zval.value.dval;
+pub inline fn Z_DVAL(zval: php.zval) *f64 {
+    return &zval.value.dval;
 }
 
-pub inline fn Z_DVAL_P(zval_p: *php.zval) f64 {
-    return Z_DVAL(zval_p.*);
+pub inline fn Z_DVAL_P(zval_p: *php.zval) *f64 {
+    return &zval_p.*.value.dval;
 }
 
 pub inline fn Z_STR(zval: php.zval) *[*c]php.zend_string {
@@ -334,7 +339,7 @@ pub inline fn Z_ASTVAL_P(zval_p: *php.zval) *php.zend_ast {
 }
 
 pub inline fn Z_INDIRECT(zval: php.zval) *php.zval {
-    return zval.value.zv;
+    return &zval.value.zv;
 }
 
 pub inline fn Z_INDIRECT_P(zval_p: *php.zval) *php.zval {
@@ -502,13 +507,11 @@ pub fn SEPARATE_ZVAL(zv: *php.zval) void {
     }
 }
 pub fn ZVAL_UNDEF(z: *php.zval) void {
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_UNDEF;
+    Z_TYPE_INFO_P(z).* = php.IS_UNDEF;
 }
 
 pub fn ZVAL_NULL(z: *php.zval) void {
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_NULL;
+    Z_TYPE_INFO_P(z).* = php.IS_NULL;
 }
 
 pub fn ZVAL_FALSE(z: *php.zval) void {
@@ -525,17 +528,13 @@ pub fn ZVAL_BOOL(z: *php.zval, b: bool) void {
 }
 
 pub fn ZVAL_LONG(z: *php.zval, l: c_long) void {
-    const l_ptr = php.Z_LVAL_P(z);
-    l_ptr.* = l;
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_LONG;
+    Z_LVAL_P(z).* = l;
+    Z_TYPE_INFO_P(z).* = php.IS_LONG;
 }
 
 pub fn ZVAL_DOUBLE(z: *php.zval, d: f64) void {
-    const d_ptr = php.Z_DVAL_P(z);
-    d_ptr.* = d;
-    const z_ptr = php.Z_TYPE_INFO_P(z);
-    z_ptr.* = php.IS_DOUBLE;
+    Z_DVAL_P(z).* = d;
+    Z_TYPE_INFO_P(z).* = php.IS_DOUBLE;
 }
 
 pub fn ZVAL_STR(z: *php.zval, s: *php.zend_string) void {
@@ -733,4 +732,18 @@ pub fn ZVAL_ALIAS_PTR(z: *php.zval, p: anyopaque) void {
 pub fn ZVAL_ERROR(z: *php.zval) void {
     const z_ptr = php.Z_TYPE_INFO_P(z);
     z_ptr.* = php._IS_ERROR;
+}
+
+pub fn Z_TRY_ADDREF_P(pz: *php.zval) void {
+    if (Z_REFCOUNTED_P(pz)) {
+        Z_ADDREF_P(pz);
+    }
+}
+
+pub fn Z_ADDREF_P(pz: *php.zval) void {
+    php.zval_addref_p(pz);
+}
+
+pub fn Z_TRY_ADDREF(z: php.zval) void {
+    Z_TRY_ADDREF_P(&z);
 }
