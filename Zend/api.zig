@@ -758,6 +758,39 @@ pub fn INIT_CLASS_ENTRY_EX(class_container: *php.zend_class_entry, class_name: [
     class_container.info.internal.builtin_functions = functions;
 }
 
+pub fn INIT_CLASS_ENTRY_INIT_METHODS(class_container: *php.zend_class_entry, functions: ?*php.zend_function_entry) void {
+    class_container.default_object_handlers = &std.object_handlers;
+    class_container.constructor = null;
+    class_container.destructor = null;
+    class_container.clone = null;
+    class_container.serialize = null;
+    class_container.unserialize = null;
+    class_container.create_object = null;
+    class_container.get_static_method = null;
+    class_container.__call = null;
+    class_container.__callstatic = null;
+    class_container.__tostring = null;
+    class_container.__get = null;
+    class_container.__set = null;
+    class_container.__unset = null;
+    class_container.__isset = null;
+    class_container.__debugInfo = null;
+    class_container.__serialize = null;
+    class_container.__unserialize = null;
+    class_container.parent = null;
+    class_container.num_interfaces = 0;
+    class_container.trait_names = null;
+    class_container.num_traits = 0;
+    class_container.trait_aliases = null;
+    class_container.trait_precedences = null;
+    class_container.interfaces = null;
+    class_container.get_iterator = null;
+    class_container.iterator_funcs_ptr = null;
+    class_container.arrayaccess_funcs_ptr = null;
+    class_container.info.internal.module = null;
+    class_container.info.internal.builtin_functions = functions;
+}
+
 pub fn INIT_CLASS_ENTRY(class_container: *php.zend_class_entry, class_name: []const u8, functions: ?*php.zend_function_entry) void {
     INIT_CLASS_ENTRY_EX(class_container, class_name, class_name.len, functions);
 }
