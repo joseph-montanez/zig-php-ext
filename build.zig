@@ -58,6 +58,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .version = .{ .major = 1, .minor = 2, .patch = 3 },
     });
+    libExt.linkLibC();
     if (enable_zts) {
         libExt.addIncludePath(.{ .cwd_relative = "." });
         libExt.addIncludePath(.{ .cwd_relative = "build/php-8.3-zts-debug/include/php" });
