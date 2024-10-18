@@ -18,7 +18,7 @@ $absolute_patch_file = Join-Path $script_dir $PATCH_FILE
 New-Item -ItemType Directory -Path $BUILD_DIR -Force
 
 foreach ($zts_type in $ZTS_TYPES) {
-    $install_dir = "$BUILD_DIR\$INSTALL_DIR_PREFIX-$zts_type"
+    $install_dir = "$BUILD_DIR\$INSTALL_DIR_PREFIX-$zts_type-debug"
 
     # If the install directory exists, remove it
     if (Test-Path $install_dir) {
