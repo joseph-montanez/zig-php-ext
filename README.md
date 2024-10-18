@@ -14,6 +14,14 @@ Right now there are several blockers for using `php-src` "as-is".
 
 https://github.com/ziglang/zig/issues/21684 - Zig does not have enough information to allow this type of operation, causing an out of bounds check at runtime. Current work around is `wrapper.c` avoid using those functions translated by Zig.
 
+
+**Dependency Loop Error**
+
+https://github.com/ziglang/zig/issues/19392 - Zig if it runs across a typedef that also has a definition, and that definition in this example `execute_data` is declared later, it creates a loop error.
+
+`execute_data` is in `INTERNAL_FUNCTION_PARAMETERS` and cannot resolved recursively since `zif_handler` forward declared (declared before execute_data struct that it depends on).
+
+
 **Zig C-Translate Atomics Bug**
 
 [Support _Atomic in translate-c #11415](https://github.com/ziglang/zig/issues/11415) - `PHP-SRC` uses atomics for booleans and this is something while Zig supports, the C-Translate does not.
