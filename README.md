@@ -4,11 +4,19 @@ A super bearly bones example of getting starting with Zig to write PHP extension
 
 ## 1. Customizing PHP C Source
 
-The source code current for PHP does not work out of the box in Zig and needs a few changes. So you cannot use off the shelf installs and need a custom build of PHP. I've designed some scripts to compile `php-src` for you with the patched code. This will compile a thread-safe and non-thread-safe version.
+The source code currently for PHP does not work out of the box in Zig and needs a few changes. So you cannot use off the shelf installs and need custom builds of PHP. I've designed some scripts to compile `php-src` for you with the patched code. This will compile thread-safe and non-thread-safe versions of debug and release.
+
+### Zig C-Translate Bugs
+
+Right now there are several blockers for using `php-src` "as-is".
+
+**Old C Style Array Access**
+
+https://github.com/ziglang/zig/issues/21684 - Zig does not have enough information to allow this type of operation, causing an out of bounds check at runtime. Current work around is `wrapper.c` avoid using those functions translated by Zig.
 
 **Zig C-Translate Atomics Bug**
 
-`PHP-SRC` uses atomics for booleans and this is something while Zig supports, the C-Translate does not [Support _Atomic in translate-c #11415](https://github.com/ziglang/zig/issues/11415).
+[Support _Atomic in translate-c #11415](https://github.com/ziglang/zig/issues/11415) - `PHP-SRC` uses atomics for booleans and this is something while Zig supports, the C-Translate does not.
 
 ```
 ~/.zig-cache/o/1b3858c1f114d7c470e34e6eba3d4113/cimport.zig:28545:19: error: opaque types have unknown size and therefore cannot be directly embedded in structs
@@ -35,7 +43,7 @@ pub const struct_zend_atomic_bool_s = extern struct {
 pub const zend_atomic_bool = struct_zend_atomic_bool_s;
 ```
 
-While I already provide patches for the C code, there is no work around for this at this time other than manual patching since the cimport.zig changes depeneding on flags and platforms. I also provide an auto-fix when you build but basically you have to twice each time you change you code.
+While I already provide patches for the C code, there is no work around for this at this time other than manual patching since the cimport.zig changes depeneding on flags and platforms. I also provide an auto-fix when you build but basically you have to twice each time you change your code. The other option is to disable atomic operations (disable C11 support), this is fine for the non-thread safe versions of PHP, but for ZTS (thread safe) its not advisable and the workaround above is the only known solution.
 
 ### Debian/Ubuntu
 
