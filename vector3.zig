@@ -57,16 +57,7 @@ pub fn php_raylib_vector3_get_property_ptr_ptr(object: [*c]php.zend_object, name
         const raw_ptr = php.zend_hash_find_ptr(obj.prop_handler, name);
         if (raw_ptr != null) {
             hnd = @alignCast(@ptrCast(raw_ptr));
-            if (hnd) |valid_hnd| {
-                if (php.zend_string_equals_literal(name, "x") or
-                    php.zend_string_equals_literal(name, "y") or
-                    php.zend_string_equals_literal(name, "z"))
-                {
-                    return php_raylib_vector3_property_reader(obj, valid_hnd, &retval);
-                }
-
-                return zend.EG(zend.ExecutorGlobalField.UNINITIALIZED_ZVAL);
-            }
+            return zend.EG(.UNINITIALIZED_ZVAL);
         }
     }
 
@@ -133,7 +124,7 @@ pub fn php_raylib_vector3_has_property(object: [*c]php.zend_object, name: [*c]ph
                 var rv: php.zval = undefined;
                 const value: *php.zval = php_raylib_vector3_read_property(object, name, php.BP_VAR_IS, cache_slot, &rv);
 
-                if (value != zend.EG(zend.ExecutorGlobalField.UNINITIALIZED_ZVAL)) {
+                if (value != zend.EG(.UNINITIALIZED_ZVAL)) {
                     php.convert_to_boolean(value);
                     ret = if (zend.Z_TYPE_P(value).* == php.IS_TRUE) 1 else 0;
                 }
@@ -141,7 +132,7 @@ pub fn php_raylib_vector3_has_property(object: [*c]php.zend_object, name: [*c]ph
             php.ZEND_PROPERTY_ISSET => {
                 var rv: php.zval = undefined;
                 const value: *php.zval = php_raylib_vector3_read_property(object, name, php.BP_VAR_IS, cache_slot, &rv);
-                if (value != zend.EG(zend.ExecutorGlobalField.UNINITIALIZED_ZVAL)) {
+                if (value != zend.EG(.UNINITIALIZED_ZVAL)) {
                     ret = if (zend.Z_TYPE_P(value).* != php.IS_NULL) 1 else 0;
                     php.zval_ptr_dtor(value);
                 }
@@ -185,7 +176,7 @@ pub fn php_raylib_vector3_get_properties(object: [*c]php.zend_object) callconv(.
             if (this.hnd) |raw_hnd| {
                 ret = php_raylib_vector3_property_reader(this.obj, raw_hnd, &val_zval);
                 if (ret == null) {
-                    ret = zend.EG(zend.ExecutorGlobalField.UNINITIALIZED_ZVAL);
+                    ret = zend.EG(.UNINITIALIZED_ZVAL);
                 }
 
                 _ = php.zend_hash_update(this.props, key, ret);
@@ -312,7 +303,7 @@ pub fn vector3__construct(execute_data: ?*php.zend_execute_data, _: ?*php.zval) 
     _ = zend.Z_PARAM_DOUBLE_OR_NULL(&paramState, &z, &z_is_null) catch {};
     _ = zend.ZEND_PARSE_PARAMETERS_END(&paramState) catch {};
 
-    var intern = Z_VECTOR3_OBJ_P(zend.EX(zend.ExecutorField.THIS));
+    var intern = Z_VECTOR3_OBJ_P(zend.EX(.THIS));
 
     if (x_is_null) x = 0.0;
     if (y_is_null) y = 0.0;
